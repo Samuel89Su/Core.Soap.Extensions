@@ -12,6 +12,7 @@ using System.ServiceModel;
 using System.ServiceModel.Channels;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace CustomMiddleware
 {
@@ -49,6 +50,9 @@ namespace CustomMiddleware
                 var contentType = httpContext.Request.ContentType;
                 var originResponseStream = httpContext.Response.Body;
 
+                // read soap action from header
+                var soapAction = httpContext.Request.Headers[SOAP_HEADER_ACTION].ToString().Trim('\"');
+
                 using (var syncReadableReqBody = new MemoryStream())
                 {
                     // copy to a sync readable stream.
@@ -58,12 +62,11 @@ namespace CustomMiddleware
 
                     var requestMessage = _messageEncoder.ReadMessage(syncReadableReqBody, 0x10000, httpContext.Request.ContentType);
 
-                    // read soap action from header
-                    var soapAction = httpContext.Request.Headers[SOAP_HEADER_ACTION].ToString().Trim('\"');
                     if (!string.IsNullOrEmpty(soapAction))
                     {
                         requestMessage.Headers.Action = soapAction;
                     }
+
                     // get operation action from registation
                     operationAction = _service.Operations.Where(o => o.SoapAction.Equals(requestMessage.Headers.Action, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
                     if (operationAction == null)
@@ -101,20 +104,42 @@ namespace CustomMiddleware
                             var responseObject = JsonConvert.DeserializeObject(res, operationAction.DispatchMethod.ReturnType);
 
                             var resultName = operationAction.DispatchMethod.ReturnParameter.GetCustomAttribute<MessageParameterAttribute>()?.Name ?? operationAction.Name + "Result";
-                            var bodyWriter = new ServiceBodyWriter(operationAction.Contract.Namespace, operationAction.Name + "Response", resultName, responseObject);
-                            var responseMessage = Message.CreateMessage(_messageEncoder.MessageVersion, operationAction.ReplyAction, bodyWriter);
 
-                            // serialize to xml
-                            var xmlResponse = new MemoryStream();
-                            _messageEncoder.WriteMessage(responseMessage, xmlResponse);
-                            xmlResponse.Position = 0;
-                            xmlResponse.Seek(0, SeekOrigin.Begin);
-                            var buffer = new byte[xmlResponse.Length];
-                            await xmlResponse.ReadAsync(buffer, 0, buffer.Length);
+                            var response = string.Empty;
+                            var xmlTempl = "<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><GetAccountResponse xmlns=\"{1}\">{0}</GetAccountResponse></soap:Body></soap:Envelope>";
+                            using (var ms = new MemoryStream())
+                            {
+                                var xmlSerializer = new XmlSerializer(operationAction.DispatchMethod.ReturnType);
+                                xmlSerializer.Serialize(ms, responseObject);
+                                ms.Position = 0;
+                                using (var reader = new StreamReader(ms))
+                                {
+                                    var str = reader.ReadToEnd();
+                                    var bodyIdx = str.IndexOf('>') + 1;
+                                    str = str.Substring(bodyIdx);
+                                    bodyIdx = str.IndexOf('>') + 1;
+                                    str = str.Substring(bodyIdx);
+                                    var bodyEndIdx = str.LastIndexOf('<');
+                                    str = str.Substring(0, bodyEndIdx);
+                                    str = $"<{resultName}>" + str + $"</{resultName}>";
+                                    response = string.Format(xmlTempl, str, _service.Contract.Namespace);
+                                }
+                            }
+
+                            // serialize to xml 
+                            //var bodyWriter = new ServiceBodyWriter(operationAction.Contract.Namespace, operationAction.Name + "Response", resultName, responseObject);
+                            //var responseMessage = Message.CreateMessage(_messageEncoder.MessageVersion, operationAction.ReplyAction, bodyWriter);
+                            //var xmlResponse = new MemoryStream();
+                            //_messageEncoder.WriteMessage(responseMessage, xmlResponse);
+                            //xmlResponse.Position = 0;
+                            //xmlResponse.Seek(0, SeekOrigin.Begin);
+                            //var buffer = new byte[xmlResponse.Length];
+                            //await xmlResponse.ReadAsync(buffer, 0, buffer.Length);
 
                             httpContext.Response.ContentType = contentType;
-                            httpContext.Response.Headers[SOAP_HEADER_ACTION] = responseMessage.Headers.Action;
+                            httpContext.Response.Headers[SOAP_HEADER_ACTION] = soapAction;
                             httpContext.Response.Body = originResponseStream;
+                            var buffer = Encoding.UTF8.GetBytes(response);
                             await httpContext.Response.Body.WriteAsync(buffer, 0, buffer.Length);
                         }
                     }

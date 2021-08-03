@@ -54,7 +54,7 @@ namespace TestCoreApplication
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "TestCoreApplication v1");
             });
 
-            app.UseSOAPMiddleware<AccountController>("/AccountService.svc", "api/Account");
+            app.UseSOAPMiddleware<AccountController>("/test.asmx", "api/Account");
             //加入一个/CalculatorService.svc 地址，绑定Http
             //app.UseSOAPMiddleware<CalculatorService>("/CalculatorService.svc");
 

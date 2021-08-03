@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SOAPMiddleware\SOAPMiddleware.csproj" />
-    <ProjectReference Include="..\SoapXMLParser\SoapXMLParser.csproj" />
   </ItemGroup>
 
 </Project>

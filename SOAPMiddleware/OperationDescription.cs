@@ -20,7 +20,11 @@ namespace CustomMiddleware
         {
             Contract = contract;
             Name = contractAttribute.Name ?? operationMethod.Name;
-            SoapAction = contractAttribute.Action ?? $"{contract.Namespace.TrimEnd('/')}/{contract.Name}/{Name}";
+            SoapAction = string.IsNullOrWhiteSpace(contractAttribute.Action)
+                ? $"{contract.Namespace.TrimEnd('/')}/{contract.Name}/{Name}"
+                : contractAttribute.Action.StartsWith(contract.Namespace, StringComparison.OrdinalIgnoreCase)
+                ? contractAttribute.Action
+                : new Uri(new Uri(contract.Namespace), contractAttribute.Action).AbsoluteUri;
             IsOneWay = contractAttribute.IsOneWay;
             ReplyAction = contractAttribute.ReplyAction;
             DispatchMethod = operationMethod;

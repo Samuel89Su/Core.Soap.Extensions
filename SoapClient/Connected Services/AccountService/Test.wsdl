@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://webservice.com" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:s1="http://microsoft.com/wsdl/types/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tm="http://microsoft.com/wsdl/mime/textMatching/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" targetNamespace="http://webservice.com" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://webservice.com">
+      <s:import namespace="http://microsoft.com/wsdl/types/" />
+      <s:element name="HelloWorld">
+        <s:complexType />
+      </s:element>
+      <s:element name="HelloWorldResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="HelloWorldResult" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetAccount">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="1" maxOccurs="1" name="id" type="s1:guid" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetAccountResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetAccountResult" type="tns:Account" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="Account">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="Id" type="s1:guid" />
+          <s:element minOccurs="0" maxOccurs="1" name="Name" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="EMail" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Contacts" type="tns:ArrayOfContact" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ArrayOfContact">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="Contact" nillable="true" type="tns:Contact" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="Contact">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="Id" type="s:int" />
+          <s:element minOccurs="0" maxOccurs="1" name="LastName" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="FirstName" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="GetAccounts">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="ids" type="tns:ArrayOfGuid" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="ArrayOfGuid">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="guid" type="s1:guid" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="GetAccountsResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetAccountsResult" type="tns:ArrayOfAccount" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="ArrayOfAccount">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="Account" nillable="true" type="tns:Account" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="CreateAccounts">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="accounts" type="tns:ArrayOfAccount" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="CreateAccountsResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="CreateAccountsResult" type="tns:ArrayOfAccount" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+    </s:schema>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://microsoft.com/wsdl/types/">
+      <s:simpleType name="guid">
+        <s:restriction base="s:string">
+          <s:pattern value="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" />
+        </s:restriction>
+      </s:simpleType>
+    </s:schema>
+  </wsdl:types>
+  <wsdl:message name="HelloWorldSoapIn">
+    <wsdl:part name="parameters" element="tns:HelloWorld" />
+  </wsdl:message>
+  <wsdl:message name="HelloWorldSoapOut">
+    <wsdl:part name="parameters" element="tns:HelloWorldResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetAccountSoapIn">
+    <wsdl:part name="parameters" element="tns:GetAccount" />
+  </wsdl:message>
+  <wsdl:message name="GetAccountSoapOut">
+    <wsdl:part name="parameters" element="tns:GetAccountResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetAccountsSoapIn">
+    <wsdl:part name="parameters" element="tns:GetAccounts" />
+  </wsdl:message>
+  <wsdl:message name="GetAccountsSoapOut">
+    <wsdl:part name="parameters" element="tns:GetAccountsResponse" />
+  </wsdl:message>
+  <wsdl:message name="CreateAccountsSoapIn">
+    <wsdl:part name="parameters" element="tns:CreateAccounts" />
+  </wsdl:message>
+  <wsdl:message name="CreateAccountsSoapOut">
+    <wsdl:part name="parameters" element="tns:CreateAccountsResponse" />
+  </wsdl:message>
+  <wsdl:portType name="AccountServiceSoap">
+    <wsdl:operation name="HelloWorld">
+      <wsdl:input message="tns:HelloWorldSoapIn" />
+      <wsdl:output message="tns:HelloWorldSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetAccount">
+      <wsdl:input message="tns:GetAccountSoapIn" />
+      <wsdl:output message="tns:GetAccountSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetAccounts">
+      <wsdl:input message="tns:GetAccountsSoapIn" />
+      <wsdl:output message="tns:GetAccountsSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="CreateAccounts">
+      <wsdl:input message="tns:CreateAccountsSoapIn" />
+      <wsdl:output message="tns:CreateAccountsSoapOut" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="AccountServiceSoap" type="tns:AccountServiceSoap">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="HelloWorld">
+      <soap:operation soapAction="http://webservice.com/HelloWorld" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAccount">
+      <soap:operation soapAction="http://webservice.com/GetAccount" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAccounts">
+      <soap:operation soapAction="http://webservice.com/GetAccounts" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="CreateAccounts">
+      <soap:operation soapAction="http://webservice.com/CreateAccounts" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="AccountServiceSoap12" type="tns:AccountServiceSoap">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="HelloWorld">
+      <soap12:operation soapAction="http://webservice.com/HelloWorld" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAccount">
+      <soap12:operation soapAction="http://webservice.com/GetAccount" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAccounts">
+      <soap12:operation soapAction="http://webservice.com/GetAccounts" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="CreateAccounts">
+      <soap12:operation soapAction="http://webservice.com/CreateAccounts" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="AccountService">
+    <wsdl:port name="AccountServiceSoap" binding="tns:AccountServiceSoap">
+      <soap:address location="http://localhost:53341/Test.asmx" />
+    </wsdl:port>
+    <wsdl:port name="AccountServiceSoap12" binding="tns:AccountServiceSoap12">
+      <soap12:address location="http://localhost:53341/Test.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

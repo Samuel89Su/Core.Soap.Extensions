@@ -1,23 +1,28 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using CustomMiddleware;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.ServiceModel;
+using System.ServiceModel.Channels;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace TestCoreApplication.Controllers
 {
-    [ServiceContract(Namespace = "http://webservice.com", Name = nameof(AccountService))]
+    [ServiceContract(Namespace = "http://webservice.com")]
     [Route("api/[controller]/[action]")]
     [ApiController]
     public class AccountController : ControllerBase
     {
-        [OperationContract]
+        [OperationContract(Action = "GetAccount")]
         [HttpPost]
         public Account GetAccount(Guid id)
         {
-            return new Account
+            var account = new Account
             {
                 Id = id,
                 Name = "123",
@@ -32,6 +37,8 @@ namespace TestCoreApplication.Controllers
                         }
                     }
             };
+
+            return account;
         }
 
         [OperationContract]
