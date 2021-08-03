@@ -1,15 +1,9 @@
-﻿using CustomMiddleware;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.ServiceModel;
-using System.ServiceModel.Channels;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
 
 namespace TestCoreApplication.Controllers
 {
@@ -18,10 +12,16 @@ namespace TestCoreApplication.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
+        public AccountController()
+        {
+        }
+
         [OperationContract(Action = "GetAccount")]
         [HttpPost]
         public Account GetAccount(Guid id)
         {
+            var action = Url.Action("Get", "Values");
+
             var account = new Account
             {
                 Id = id,

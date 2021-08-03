@@ -5,7 +5,7 @@ using System.Reflection;
 using System.ServiceModel;
 using System.Threading.Tasks;
 
-namespace CustomMiddleware
+namespace SoapJsonConversionMiddleware
 {
     public class ContractDescription
     {

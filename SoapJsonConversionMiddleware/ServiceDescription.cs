@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.ServiceModel;
 
-namespace CustomMiddleware
+namespace SoapJsonConversionMiddleware
 {
     public class ServiceDescription
     {

@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
 using System.Threading.Tasks;
-using CustomMiddleware;
+using SoapJsonConversionMiddleware;
 using TestCoreApplication.Controllers;
 
 namespace TestCoreApplication
@@ -54,11 +54,7 @@ namespace TestCoreApplication
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "TestCoreApplication v1");
             });
 
-            app.UseSOAPMiddleware<AccountController>("/test.asmx", "api/Account");
-            //加入一个/CalculatorService.svc 地址，绑定Http
-            //app.UseSOAPMiddleware<CalculatorService>("/CalculatorService.svc");
-
-            //app.UseMiddleware<SoapMiddleware>();
+            app.UseSOAPMiddleware<AccountController>("/test.asmx");
 
             app.UseRouting();
 

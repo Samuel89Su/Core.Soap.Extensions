@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -14,27 +16,41 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace CustomMiddleware
+namespace SoapJsonConversionMiddleware
 {
     public class SOAPMiddleware
     {
+        private const string SOAP_HEADER_ACTION = "SOAPAction";
+        private const string MEDIATYPE_JSON = "application/json; charset=utf-8";
+
+        private const string SUFFIX_CONTROLLER = "controller";
+        private const string SUFFIX_ACTION = "action";
+
         private readonly RequestDelegate _next;
         private readonly string _endpointPath;
-        private readonly string _rewriteEndpointPath;
         private readonly MessageEncoder _messageEncoder;
         private readonly ServiceDescription _service;
 
-        private const string SOAP_HEADER_ACTION = "SOAPAction";
+        private readonly string _routeTemplate;
 
-        public SOAPMiddleware(RequestDelegate next, Type serviceType, string path, string rewritePath)
+        public SOAPMiddleware(RequestDelegate next, Type serviceType, string path)
         {
             _next = next;
             _endpointPath = path;
-            _rewriteEndpointPath = rewritePath;
             _messageEncoder = new BasicHttpBinding()
                 .CreateBindingElements()
                 .Find<MessageEncodingBindingElement>()?.CreateMessageEncoderFactory().Encoder;
             _service = new ServiceDescription(serviceType);
+
+            var routeAttribute = serviceType.GetCustomAttribute<RouteAttribute>()
+                ?? throw new ArgumentException($"Controller {serviceType.Name} must has RouteAttribute!");
+            _routeTemplate = "/" + routeAttribute.Template
+                .Replace($"[{SUFFIX_CONTROLLER}]", serviceType.Name.Replace(SUFFIX_CONTROLLER, string.Empty, StringComparison.OrdinalIgnoreCase), StringComparison.OrdinalIgnoreCase)
+                .Replace($"[{SUFFIX_ACTION}]", "{0}", StringComparison.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(_routeTemplate))
+            {
+                throw new ArgumentException($"Can not determine route template for Controller {serviceType.Name}!");
+            }
         }
 
         public async Task Invoke(HttpContext httpContext)
@@ -78,8 +94,8 @@ namespace CustomMiddleware
                 }
 
                 // rewrite path
-                httpContext.Request.Path = "/" + _rewriteEndpointPath + "/" + operationAction.Name;
-                httpContext.Request.ContentType = "application/json; charset=utf-8";
+                httpContext.Request.Path = string.Format(_routeTemplate, operationAction.Name);
+                httpContext.Request.ContentType = MEDIATYPE_JSON;
 
                 // replace Request.Body with first argument
                 var jsonRequestBody = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(arguments.FirstOrDefault())));
@@ -171,9 +187,9 @@ namespace CustomMiddleware
 
     public static class SOAPMiddlewareExtensions
     {
-        public static IApplicationBuilder UseSOAPMiddleware<T>(this IApplicationBuilder builder, string path, string rewritePath)
+        public static IApplicationBuilder UseSOAPMiddleware<T>(this IApplicationBuilder builder, [NotNull] string path) where T : ControllerBase
         {
-            return builder.UseMiddleware<SOAPMiddleware>(typeof(T), path, rewritePath);
+            return builder.UseMiddleware<SOAPMiddleware>(typeof(T), path);
         }
     }
 }
