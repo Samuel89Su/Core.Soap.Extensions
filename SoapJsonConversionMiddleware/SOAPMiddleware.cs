@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -14,6 +17,7 @@ using System.ServiceModel;
 using System.ServiceModel.Channels;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace SoapJsonConversionMiddleware
@@ -32,6 +36,7 @@ namespace SoapJsonConversionMiddleware
         private readonly ServiceDescription _service;
 
         private readonly string _routeTemplate;
+        private ILogger _logger;
 
         public SOAPMiddleware(RequestDelegate next, Type serviceType, string path)
         {
@@ -55,28 +60,32 @@ namespace SoapJsonConversionMiddleware
 
         public async Task Invoke(HttpContext httpContext)
         {
-            if (!httpContext.Request.Path.Equals(_endpointPath, StringComparison.OrdinalIgnoreCase))
+            _logger ??= (httpContext.RequestServices.GetService(typeof(ILoggerFactory)) as ILoggerFactory)?.CreateLogger<SOAPMiddleware>();
+
+            var request = httpContext.Request;
+            if (!request.Path.Equals(_endpointPath, StringComparison.OrdinalIgnoreCase))
             {
+                _logger?.LogDebug($"{request.Path.Value} do not match {_endpointPath}, go to next!");
                 await _next(httpContext);
             }
             else
             {
                 OperationDescription operationAction;
                 object[] arguments = new object[0];
-                var contentType = httpContext.Request.ContentType;
+                var contentType = request.ContentType;
                 var originResponseStream = httpContext.Response.Body;
 
                 // read soap action from header
-                var soapAction = httpContext.Request.Headers[SOAP_HEADER_ACTION].ToString().Trim('\"');
+                var soapAction = request.Headers[SOAP_HEADER_ACTION].ToString().Trim('\"');
 
                 using (var syncReadableReqBody = new MemoryStream())
                 {
                     // copy to a sync readable stream.
-                    await httpContext.Request.Body.CopyToAsync(syncReadableReqBody);
+                    await request.Body.CopyToAsync(syncReadableReqBody);
                     syncReadableReqBody.Position = 0;
                     syncReadableReqBody.Seek(0, SeekOrigin.Begin);
 
-                    var requestMessage = _messageEncoder.ReadMessage(syncReadableReqBody, 0x10000, httpContext.Request.ContentType);
+                    var requestMessage = _messageEncoder.ReadMessage(syncReadableReqBody, 0x10000, request.ContentType);
 
                     if (!string.IsNullOrEmpty(soapAction))
                     {
@@ -94,14 +103,28 @@ namespace SoapJsonConversionMiddleware
                 }
 
                 // rewrite path
-                httpContext.Request.Path = string.Format(_routeTemplate, operationAction.Name);
-                httpContext.Request.ContentType = MEDIATYPE_JSON;
+                var originPath = request.Path.Value;
+                var newPath = string.Format(_routeTemplate, operationAction.Name);
+                request.Path = newPath;
+                request.ContentType = MEDIATYPE_JSON;
 
                 // replace Request.Body with first argument
-                var jsonRequestBody = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(arguments.FirstOrDefault())));
+                var argument = JsonConvert.SerializeObject(arguments.FirstOrDefault());
+                var jsonRequestBody = new MemoryStream(Encoding.UTF8.GetBytes(argument));
                 jsonRequestBody.Seek(0, SeekOrigin.Begin);
-                httpContext.Request.Body = jsonRequestBody;
+                request.Body = jsonRequestBody;
 
+                _logger?.LogDebug($"rewrite {originPath} to {newPath} with parameter {argument}!");
+
+                var returntype = operationAction.DispatchMethod.ReturnType;
+                if (returntype == typeof(Task))
+                {
+                    returntype = typeof(void);
+                }
+                else if (returntype.IsGenericType && typeof(Task).IsAssignableFrom(returntype))
+                {
+                    returntype = returntype.GenericTypeArguments.FirstOrDefault();
+                }
                 using (var readableResponseBody = new MemoryStream())
                 {
                     // replace Response.Body with readable stream
@@ -115,16 +138,24 @@ namespace SoapJsonConversionMiddleware
                         httpContext.Response.Headers[SOAP_HEADER_ACTION] = soapAction;
                         httpContext.Response.Body = originResponseStream;
 
-                        readableResponseBody.Position = 0;
-                        readableResponseBody.Seek(0, SeekOrigin.Begin);
-                        using (var bodyReader = new StreamReader(readableResponseBody))
+                        if (returntype == typeof(void))
                         {
-                            var res = await bodyReader.ReadToEndAsync();
-                            // deserialize response
-                            var responseObject = JsonConvert.DeserializeObject(res, operationAction.DispatchMethod.ReturnType);
-
-                            var buffer = EnvelopeMessage(responseObject, operationAction);
+                            var buffer = EnvelopeMessage(null, returntype, operationAction);
                             await httpContext.Response.Body.WriteAsync(buffer, 0, buffer.Length);
+                        }
+                        else
+                        {
+                            readableResponseBody.Position = 0;
+                            readableResponseBody.Seek(0, SeekOrigin.Begin);
+                            using (var bodyReader = new StreamReader(readableResponseBody))
+                            {
+                                var res = await bodyReader.ReadToEndAsync();
+                                // deserialize response
+                                var responseObject = JsonConvert.DeserializeObject(res, returntype);
+
+                                var buffer = EnvelopeMessage(responseObject, returntype, operationAction);
+                                await httpContext.Response.Body.WriteAsync(buffer, 0, buffer.Length);
+                            }
                         }
                     }
                 }
@@ -133,52 +164,111 @@ namespace SoapJsonConversionMiddleware
 
         private object[] GetRequestArguments(Message requestMessage, OperationDescription operation)
         {
-            var parameters = operation.DispatchMethod.GetParameters();
-            var arguments = new List<object>();
-
-            // 反序列化请求包和对象
-            using (var xmlReader = requestMessage.GetReaderAtBodyContents())
+            try
             {
-                // 查找的操作数据的元素
-                xmlReader.ReadStartElement(operation.Name, operation.Contract.Namespace);
+                var parameters = operation.DispatchMethod.GetParameters();
+                var arguments = new List<object>();
 
-                for (int i = 0; i < parameters.Length; i++)
+                // 反序列化请求包和对象
+                using (var xmlReader = requestMessage.GetReaderAtBodyContents())
                 {
-                    var parameterName = parameters[i].GetCustomAttribute<MessageParameterAttribute>()?.Name ?? parameters[i].Name;
-                    xmlReader.MoveToStartElement(parameterName, operation.Contract.Namespace);
-                    if (xmlReader.IsStartElement(parameterName, operation.Contract.Namespace))
+                    // 查找的操作数据的元素
+                    xmlReader.ReadStartElement(operation.Name, operation.Contract.Namespace);
+                    for (int i = 0; i < parameters.Length; i++)
                     {
-                        var serializer = new DataContractSerializer(parameters[i].ParameterType, parameterName, operation.Contract.Namespace);
-                        arguments.Add(serializer.ReadObject(xmlReader, verifyObjectName: true));
+                        var parameterName = parameters[i].GetCustomAttribute<MessageParameterAttribute>()?.Name ?? parameters[i].Name;
+                        var parameterType = parameters[i].ParameterType;
+                        xmlReader.MoveToStartElement(parameterName, operation.Contract.Namespace);
+                        if (xmlReader.IsStartElement(parameterName, operation.Contract.Namespace))
+                        {
+                            if (parameterType.IsPrimitive || parameterType == typeof(string))
+                            {
+                                var serializer = new DataContractSerializer(parameterType, parameterName, operation.Contract.Namespace);
+                                arguments.Add(serializer.ReadObject(xmlReader, verifyObjectName: true));
+                            }
+                            else if (parameterType.IsGenericType && typeof(IEnumerable).IsAssignableFrom(parameterType) && parameterType != typeof(string))
+                            {
+                                var node = new XmlDocument();
+                                node.LoadXml(xmlReader.ReadOuterXml());
+                                var jtoken = JToken.Parse(JsonConvert.SerializeXmlNode(node));
+                                var genericTypeArgumentType = parameterType.GenericTypeArguments.First();
+                                if (jtoken.Type == JTokenType.Object
+                                    && jtoken.ToObject<Dictionary<string, JToken>>().TryGetValue(parameterName, out JToken dataToken) && dataToken.Type == JTokenType.Object)
+                                {
+                                    var dataDic = dataToken.ToObject<Dictionary<string, JToken>>();
+                                    if (dataDic.TryGetValue(genericTypeArgumentType.Name.ToLower(), out JToken array))
+                                    {
+                                        if (array.Type == JTokenType.Array)
+                                        {
+                                            var argument = array.ToObject(parameterType);
+                                            arguments.Add(argument);
+                                        }
+                                        else
+                                        {
+                                            var argument = new JArray(array).ToObject(parameterType);
+                                            arguments.Add(argument);
+                                        }
+                                    }
+                                }
+                            }
+                            else if (parameterType.IsClass)
+                            {
+                                //var xml = xmlReader.ReadOuterXml();
+                                var xmlSerializer = new XmlSerializer(parameterType);
+                                var argument = xmlSerializer.Deserialize(xmlReader);
+                                arguments.Add(argument);
+
+                                //var node = new XmlDocument();
+                                //node.LoadXml(xmlReader.ReadOuterXml());
+                                //var jtoken = JToken.Parse(JsonConvert.SerializeXmlNode(node));
+                                //if (jtoken.Type == JTokenType.Object
+                                //    && jtoken.ToObject<Dictionary<string, JToken>>().TryGetValue(parameterName, out JToken dataToken) && dataToken.Type == JTokenType.Object)
+                                //{
+                                //    var argument = dataToken.ToObject(parameterType);
+                                //    arguments.Add(argument);
+                                //}
+                            }
+                        }
                     }
                 }
-            }
 
-            return arguments.ToArray();
+                return arguments.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         private const string XML_Envelope = "<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><GetAccountResponse xmlns=\"{1}\">{0}</GetAccountResponse></soap:Body></soap:Envelope>";
-        private byte[] EnvelopeMessage(object responseObject, OperationDescription operationAction)
+        private byte[] EnvelopeMessage(object responseObject, Type returnType, OperationDescription operationAction)
         {
             var resultName = operationAction.DispatchMethod.ReturnParameter.GetCustomAttribute<MessageParameterAttribute>()?.Name ?? operationAction.Name + "Result";
 
             var response = string.Empty;
-            using (var ms = new MemoryStream())
+            if (returnType == typeof(void))
             {
-                var xmlSerializer = new XmlSerializer(operationAction.DispatchMethod.ReturnType);
-                xmlSerializer.Serialize(ms, responseObject);
-                ms.Position = 0;
-                using (var reader = new StreamReader(ms))
+                response = string.Format(XML_Envelope, string.Empty, _service.Contract.Namespace);
+            }
+            else
+            {
+                using (var ms = new MemoryStream())
                 {
-                    var str = reader.ReadToEnd();
-                    var bodyIdx = str.IndexOf('>') + 1;
-                    str = str.Substring(bodyIdx);
-                    bodyIdx = str.IndexOf('>') + 1;
-                    str = str.Substring(bodyIdx);
-                    var bodyEndIdx = str.LastIndexOf('<');
-                    str = str.Substring(0, bodyEndIdx);
-                    str = $"<{resultName}>" + str + $"</{resultName}>";
-                    response = string.Format(XML_Envelope, str, _service.Contract.Namespace);
+                    var xmlSerializer = new XmlSerializer(returnType);
+                    xmlSerializer.Serialize(ms, responseObject);
+                    ms.Position = 0;
+                    using (var reader = new StreamReader(ms))
+                    {
+                        var str = reader.ReadToEnd();
+                        var bodyIdx = str.IndexOf('>') + 1;
+                        str = str.Substring(bodyIdx);
+                        bodyIdx = str.IndexOf('>') + 1;
+                        str = str.Substring(bodyIdx);
+                        var bodyEndIdx = str.LastIndexOf('<');
+                        str = str.Substring(0, bodyEndIdx);
+                        str = $"<{resultName}>" + str + $"</{resultName}>";
+                        response = string.Format(XML_Envelope, str, _service.Contract.Namespace);
+                    }
                 }
             }
             return Encoding.UTF8.GetBytes(response);

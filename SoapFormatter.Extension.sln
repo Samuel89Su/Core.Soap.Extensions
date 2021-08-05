@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapClient", "SoapClient\So
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversionMiddleware", "SoapJsonConversionMiddleware\SoapJsonConversionMiddleware.csproj", "{881A0D6A-993D-4317-8E67-3711D174E69D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapJsonConversionMiddlewareTests", "SoapJsonConversionMiddlewareTests\SoapJsonConversionMiddlewareTests.csproj", "{2B6CD1AB-CCBE-41C6-AB3B-2F935C75FA56}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapJsonConversionMiddleware.Model", "SoapJsonConversionMiddleware.Model\SoapJsonConversionMiddleware.Model.csproj", "{C46E1BB1-CD69-4D8D-AB80-45E8366C0346}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapProxy.WebApiHost", "SoapProxy.WebApiHost\SoapProxy.WebApiHost.csproj", "{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}"
 	ProjectSection(ProjectDependencies) = postProject
 		{5FAD9000-3DFE-4375-86A1-1F242C194598} = {5FAD9000-3DFE-4375-86A1-1F242C194598}
@@ -38,6 +42,14 @@ Global
 		{881A0D6A-993D-4317-8E67-3711D174E69D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{881A0D6A-993D-4317-8E67-3711D174E69D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{881A0D6A-993D-4317-8E67-3711D174E69D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B6CD1AB-CCBE-41C6-AB3B-2F935C75FA56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B6CD1AB-CCBE-41C6-AB3B-2F935C75FA56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B6CD1AB-CCBE-41C6-AB3B-2F935C75FA56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B6CD1AB-CCBE-41C6-AB3B-2F935C75FA56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C46E1BB1-CD69-4D8D-AB80-45E8366C0346}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C46E1BB1-CD69-4D8D-AB80-45E8366C0346}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C46E1BB1-CD69-4D8D-AB80-45E8366C0346}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C46E1BB1-CD69-4D8D-AB80-45E8366C0346}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
