@@ -138,25 +138,22 @@ namespace SoapJsonConversionMiddleware
                         httpContext.Response.Headers[SOAP_HEADER_ACTION] = soapAction;
                         httpContext.Response.Body = originResponseStream;
 
-                        if (returntype == typeof(void))
+                        readableResponseBody.Position = 0;
+                        readableResponseBody.Seek(0, SeekOrigin.Begin);
+
+                        object returnObject = null;
+                        if (returntype != typeof(void))
                         {
-                            var buffer = EnvelopeMessage(null, returntype, operationAction);
-                            await httpContext.Response.Body.WriteAsync(buffer, 0, buffer.Length);
-                        }
-                        else
-                        {
-                            readableResponseBody.Position = 0;
-                            readableResponseBody.Seek(0, SeekOrigin.Begin);
                             using (var bodyReader = new StreamReader(readableResponseBody))
                             {
                                 var res = await bodyReader.ReadToEndAsync();
                                 // deserialize response
-                                var responseObject = JsonConvert.DeserializeObject(res, returntype);
-
-                                var buffer = EnvelopeMessage(responseObject, returntype, operationAction);
-                                await httpContext.Response.Body.WriteAsync(buffer, 0, buffer.Length);
+                                returnObject = JsonConvert.DeserializeObject(res, returntype);
                             }
                         }
+
+                        var buffer = SoapXMLHandler.Serialize(returnObject, returntype, operationAction, _service.Contract.Namespace);
+                        await httpContext.Response.Body.WriteAsync(buffer, 0, buffer.Length);
                     }
                 }
             }
@@ -176,59 +173,7 @@ namespace SoapJsonConversionMiddleware
                     xmlReader.ReadStartElement(operation.Name, operation.Contract.Namespace);
                     for (int i = 0; i < parameters.Length; i++)
                     {
-                        var parameterName = parameters[i].GetCustomAttribute<MessageParameterAttribute>()?.Name ?? parameters[i].Name;
-                        var parameterType = parameters[i].ParameterType;
-                        xmlReader.MoveToStartElement(parameterName, operation.Contract.Namespace);
-                        if (xmlReader.IsStartElement(parameterName, operation.Contract.Namespace))
-                        {
-                            if (parameterType.IsPrimitive || parameterType == typeof(string))
-                            {
-                                var serializer = new DataContractSerializer(parameterType, parameterName, operation.Contract.Namespace);
-                                arguments.Add(serializer.ReadObject(xmlReader, verifyObjectName: true));
-                            }
-                            else if (parameterType.IsGenericType && typeof(IEnumerable).IsAssignableFrom(parameterType) && parameterType != typeof(string))
-                            {
-                                var node = new XmlDocument();
-                                node.LoadXml(xmlReader.ReadOuterXml());
-                                var jtoken = JToken.Parse(JsonConvert.SerializeXmlNode(node));
-                                var genericTypeArgumentType = parameterType.GenericTypeArguments.First();
-                                if (jtoken.Type == JTokenType.Object
-                                    && jtoken.ToObject<Dictionary<string, JToken>>().TryGetValue(parameterName, out JToken dataToken) && dataToken.Type == JTokenType.Object)
-                                {
-                                    var dataDic = dataToken.ToObject<Dictionary<string, JToken>>();
-                                    if (dataDic.TryGetValue(genericTypeArgumentType.Name.ToLower(), out JToken array))
-                                    {
-                                        if (array.Type == JTokenType.Array)
-                                        {
-                                            var argument = array.ToObject(parameterType);
-                                            arguments.Add(argument);
-                                        }
-                                        else
-                                        {
-                                            var argument = new JArray(array).ToObject(parameterType);
-                                            arguments.Add(argument);
-                                        }
-                                    }
-                                }
-                            }
-                            else if (parameterType.IsClass)
-                            {
-                                //var xml = xmlReader.ReadOuterXml();
-                                var xmlSerializer = new XmlSerializer(parameterType);
-                                var argument = xmlSerializer.Deserialize(xmlReader);
-                                arguments.Add(argument);
-
-                                //var node = new XmlDocument();
-                                //node.LoadXml(xmlReader.ReadOuterXml());
-                                //var jtoken = JToken.Parse(JsonConvert.SerializeXmlNode(node));
-                                //if (jtoken.Type == JTokenType.Object
-                                //    && jtoken.ToObject<Dictionary<string, JToken>>().TryGetValue(parameterName, out JToken dataToken) && dataToken.Type == JTokenType.Object)
-                                //{
-                                //    var argument = dataToken.ToObject(parameterType);
-                                //    arguments.Add(argument);
-                                //}
-                            }
-                        }
+                        arguments.Add(SoapXMLHandler.Deserialize(xmlReader, parameters[i], operation.Contract.Namespace));
                     }
                 }
 
@@ -238,40 +183,6 @@ namespace SoapJsonConversionMiddleware
             {
                 throw;
             }
-        }
-
-        private const string XML_Envelope = "<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><GetAccountResponse xmlns=\"{1}\">{0}</GetAccountResponse></soap:Body></soap:Envelope>";
-        private byte[] EnvelopeMessage(object responseObject, Type returnType, OperationDescription operationAction)
-        {
-            var resultName = operationAction.DispatchMethod.ReturnParameter.GetCustomAttribute<MessageParameterAttribute>()?.Name ?? operationAction.Name + "Result";
-
-            var response = string.Empty;
-            if (returnType == typeof(void))
-            {
-                response = string.Format(XML_Envelope, string.Empty, _service.Contract.Namespace);
-            }
-            else
-            {
-                using (var ms = new MemoryStream())
-                {
-                    var xmlSerializer = new XmlSerializer(returnType);
-                    xmlSerializer.Serialize(ms, responseObject);
-                    ms.Position = 0;
-                    using (var reader = new StreamReader(ms))
-                    {
-                        var str = reader.ReadToEnd();
-                        var bodyIdx = str.IndexOf('>') + 1;
-                        str = str.Substring(bodyIdx);
-                        bodyIdx = str.IndexOf('>') + 1;
-                        str = str.Substring(bodyIdx);
-                        var bodyEndIdx = str.LastIndexOf('<');
-                        str = str.Substring(0, bodyEndIdx);
-                        str = $"<{resultName}>" + str + $"</{resultName}>";
-                        response = string.Format(XML_Envelope, str, _service.Contract.Namespace);
-                    }
-                }
-            }
-            return Encoding.UTF8.GetBytes(response);
         }
     }
 

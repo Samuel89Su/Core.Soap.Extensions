@@ -30,9 +30,12 @@ namespace SoapJsonConversionMiddleware.Tests
 
                 var xmlSerializer = new XmlSerializer(parameterType);
 
-                var outerXml = OverwriteSoapXml(parameterType, parameterName, action, xml);
+                var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
+                xmlReader.ReadStartElement(action, @namespace);
 
+                var outerXml = SoapXMLHandler.OverwriteSoapXml(parameterType, parameterName, @namespace, xmlReader);
                 var guid = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml)));
+
                 guid.ShouldBe(Guid.Parse("29dad7b2-7d9c-46aa-b8ed-19386514175e"));
             }
             catch (Exception ex)
@@ -53,14 +56,15 @@ namespace SoapJsonConversionMiddleware.Tests
 
                 var xmlSerializer = new XmlSerializer(parameterType);
 
-                var outerXml = OverwriteSoapXml(parameterType, parameterName, action, xml);
+                var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
+                xmlReader.ReadStartElement(action, @namespace);
 
-                {
-                    var guids = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as List<Guid>;
-                    guids.ShouldNotBeNull();
-                    guids.Count.ShouldBe(2);
-                    guids.ForEach(g => g.ShouldNotBe(Guid.Empty));
-                }
+                var outerXml = SoapXMLHandler.OverwriteSoapXml(parameterType, parameterName, @namespace, xmlReader);
+                var guids = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as List<Guid>;
+                
+                guids.ShouldNotBeNull();
+                guids.Count.ShouldBe(2);
+                guids.ForEach(g => g.ShouldNotBe(Guid.Empty));
             }
             catch (Exception ex)
             {
@@ -80,15 +84,16 @@ namespace SoapJsonConversionMiddleware.Tests
 
                 var xmlSerializer = new XmlSerializer(parameterType);
 
-                var outerXml = OverwriteSoapXml(parameterType, parameterName, action, xml);
-
-                {
-                    var account = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as Account;
-                    account.ShouldNotBeNull();
-                    account.Id.ShouldNotBe(Guid.Empty);
-                    account.Contacts.ShouldNotBeNull();
-                    account.Contacts.Count.ShouldBe(2);
-                }
+                var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
+                xmlReader.ReadStartElement(action, @namespace);
+                
+                var outerXml = SoapXMLHandler.OverwriteSoapXml(parameterType, parameterName, @namespace, xmlReader);
+                var account = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as Account;
+                
+                account.ShouldNotBeNull();
+                account.Id.ShouldNotBe(Guid.Empty);
+                account.Contacts.ShouldNotBeNull();
+                account.Contacts.Count.ShouldBe(2);
             }
             catch (Exception ex)
             {
@@ -108,66 +113,22 @@ namespace SoapJsonConversionMiddleware.Tests
 
                 var xmlSerializer = new XmlSerializer(parameterType);
 
-                var outerXml = OverwriteSoapXml(parameterType, parameterName, action, xml);
-
-                {
-                    var accounts = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as List<Account>;
-                    accounts.ShouldNotBeNull();
-                    accounts.Count.ShouldBe(2);
-                    accounts.Last().Id.ShouldNotBe(Guid.Empty);
-                    accounts.Last().Contacts.ShouldNotBeNull();
-                    accounts.Last().Contacts.Count.ShouldBe(2);
-                }
+                var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
+                xmlReader.ReadStartElement(action, @namespace);
+                
+                var outerXml = SoapXMLHandler.OverwriteSoapXml(parameterType, parameterName, @namespace, xmlReader);
+                var accounts = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as List<Account>;
+                
+                accounts.ShouldNotBeNull();
+                accounts.Count.ShouldBe(2);
+                accounts.Last().Id.ShouldNotBe(Guid.Empty);
+                accounts.Last().Contacts.ShouldNotBeNull();
+                accounts.Last().Contacts.Count.ShouldBe(2);
             }
             catch (Exception ex)
             {
                 throw;
             }
-        }
-
-        private static string OverwriteSoapXml(Type parameterType, string parameterName, string action, string xml)
-        {
-            var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
-            xmlReader.ReadStartElement(action, @namespace);
-
-            xmlReader.MoveToStartElement(parameterName, @namespace);
-            if (xmlReader.IsStartElement(parameterName, @namespace))
-            {
-                var outerXml = xmlReader.ReadOuterXml();
-                outerXml = outerXml.Substring(outerXml.IndexOf(">") + 1);
-                outerXml = outerXml.Substring(0, outerXml.LastIndexOf("<"));
-                var typeNodeName = GetTypeNodeName(parameterType);
-                outerXml = $"<{typeNodeName}>" + outerXml + $"</{typeNodeName}>";
-
-                return outerXml;
-            }
-            else
-                return string.Empty;
-        }
-
-        private static string GetTypeNodeName(Type type)
-        {
-            var typeName = type.Name;
-            if (type.IsGenericType && typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
-            {
-                var firstGenericTypeArgument = type.GenericTypeArguments.FirstOrDefault();
-                return "ArrayOf" + firstGenericTypeArgument.Name;
-            }
-            else if (type.IsPrimitive || type == typeof(string) || type == typeof(Guid))
-            {
-                return ToLowerCamelCase(typeName);
-            }
-
-            return typeName;
-        }
-
-        private static string ToLowerCamelCase(string source)
-        {
-            if (string.IsNullOrWhiteSpace(source))
-            {
-                return source;
-            }
-            return char.ToLower(source[0]) + source.Substring(1);
         }
     }
 }

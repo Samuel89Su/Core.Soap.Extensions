@@ -11,14 +11,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapClient", "SoapClient\So
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversionMiddleware", "SoapJsonConversionMiddleware\SoapJsonConversionMiddleware.csproj", "{881A0D6A-993D-4317-8E67-3711D174E69D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapJsonConversionMiddlewareTests", "SoapJsonConversionMiddlewareTests\SoapJsonConversionMiddlewareTests.csproj", "{2B6CD1AB-CCBE-41C6-AB3B-2F935C75FA56}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversionMiddlewareTests", "SoapJsonConversionMiddlewareTests\SoapJsonConversionMiddlewareTests.csproj", "{2B6CD1AB-CCBE-41C6-AB3B-2F935C75FA56}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapJsonConversionMiddleware.Model", "SoapJsonConversionMiddleware.Model\SoapJsonConversionMiddleware.Model.csproj", "{C46E1BB1-CD69-4D8D-AB80-45E8366C0346}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversionMiddleware.Model", "SoapJsonConversionMiddleware.Model\SoapJsonConversionMiddleware.Model.csproj", "{C46E1BB1-CD69-4D8D-AB80-45E8366C0346}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapProxy.WebApiHost", "SoapProxy.WebApiHost\SoapProxy.WebApiHost.csproj", "{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}"
 	ProjectSection(ProjectDependencies) = postProject
 		{5FAD9000-3DFE-4375-86A1-1F242C194598} = {5FAD9000-3DFE-4375-86A1-1F242C194598}
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{BB09DB99-21AD-49F8-B74A-F41C5AA91C77}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{93E296EF-0B8E-4218-BE73-E1ED5C665859}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +61,13 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5FAD9000-3DFE-4375-86A1-1F242C194598} = {93E296EF-0B8E-4218-BE73-E1ED5C665859}
+		{830B7EE2-F50B-4571-BB62-59D46DD0E2D6} = {93E296EF-0B8E-4218-BE73-E1ED5C665859}
+		{B21D7304-F1F2-4C8F-A898-00F0209A51DC} = {93E296EF-0B8E-4218-BE73-E1ED5C665859}
+		{2B6CD1AB-CCBE-41C6-AB3B-2F935C75FA56} = {BB09DB99-21AD-49F8-B74A-F41C5AA91C77}
+		{C46E1BB1-CD69-4D8D-AB80-45E8366C0346} = {93E296EF-0B8E-4218-BE73-E1ED5C665859}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D0BE98B6-D0F6-4708-9210-90EC3B02DB67}
