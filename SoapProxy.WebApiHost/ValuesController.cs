@@ -11,7 +11,7 @@ namespace SoapProxy.WebApiHost
     {
         public async Task<string> Get()
         {
-            TestWebService.AccountServiceSoapClient;
+            //TestWebService.AccountServiceSoapClient;
 
             return "value";
         }
