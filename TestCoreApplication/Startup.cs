@@ -10,6 +10,7 @@ using System.ServiceModel;
 using System.Threading.Tasks;
 using SoapJsonConversionMiddleware;
 using TestCoreApplication.Controllers;
+using NLog.Contrib.Targets.WebSocket.Web.AspNetCore;
 
 namespace TestCoreApplication
 {
@@ -34,6 +35,8 @@ namespace TestCoreApplication
 
             services.AddTransient<AccountService>();
             //services.AddTransient<CalculatorService>();
+
+            services.AddNLogTargetWebSocket();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -47,6 +50,8 @@ namespace TestCoreApplication
             {
                 app.UseExceptionHandler("/Error");
             }
+
+            app.UseNLogWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
 
             app.UseSwagger();
             app.UseSwaggerUI(c =>

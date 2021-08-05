@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -32,6 +33,7 @@ namespace SoapJsonConversionMiddleware
         private readonly ServiceDescription _service;
 
         private readonly string _routeTemplate;
+        private ILogger _logger;
 
         public SOAPMiddleware(RequestDelegate next, Type serviceType, string path)
         {
@@ -55,28 +57,32 @@ namespace SoapJsonConversionMiddleware
 
         public async Task Invoke(HttpContext httpContext)
         {
-            if (!httpContext.Request.Path.Equals(_endpointPath, StringComparison.OrdinalIgnoreCase))
+            _logger ??= (httpContext.RequestServices.GetService(typeof(ILoggerFactory)) as ILoggerFactory)?.CreateLogger<SOAPMiddleware>();
+
+            var request = httpContext.Request;
+            if (!request.Path.Equals(_endpointPath, StringComparison.OrdinalIgnoreCase))
             {
+                _logger?.LogDebug($"{request.Path.Value} do not match {_endpointPath}, go to next!");
                 await _next(httpContext);
             }
             else
             {
                 OperationDescription operationAction;
                 object[] arguments = new object[0];
-                var contentType = httpContext.Request.ContentType;
+                var contentType = request.ContentType;
                 var originResponseStream = httpContext.Response.Body;
 
                 // read soap action from header
-                var soapAction = httpContext.Request.Headers[SOAP_HEADER_ACTION].ToString().Trim('\"');
+                var soapAction = request.Headers[SOAP_HEADER_ACTION].ToString().Trim('\"');
 
                 using (var syncReadableReqBody = new MemoryStream())
                 {
                     // copy to a sync readable stream.
-                    await httpContext.Request.Body.CopyToAsync(syncReadableReqBody);
+                    await request.Body.CopyToAsync(syncReadableReqBody);
                     syncReadableReqBody.Position = 0;
                     syncReadableReqBody.Seek(0, SeekOrigin.Begin);
 
-                    var requestMessage = _messageEncoder.ReadMessage(syncReadableReqBody, 0x10000, httpContext.Request.ContentType);
+                    var requestMessage = _messageEncoder.ReadMessage(syncReadableReqBody, 0x10000, request.ContentType);
 
                     if (!string.IsNullOrEmpty(soapAction))
                     {
@@ -94,13 +100,18 @@ namespace SoapJsonConversionMiddleware
                 }
 
                 // rewrite path
-                httpContext.Request.Path = string.Format(_routeTemplate, operationAction.Name);
-                httpContext.Request.ContentType = MEDIATYPE_JSON;
+                var originPath = request.Path.Value;
+                var newPath = string.Format(_routeTemplate, operationAction.Name);
+                request.Path = newPath;
+                request.ContentType = MEDIATYPE_JSON;
 
                 // replace Request.Body with first argument
-                var jsonRequestBody = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(arguments.FirstOrDefault())));
+                var argument = JsonConvert.SerializeObject(arguments.FirstOrDefault());
+                var jsonRequestBody = new MemoryStream(Encoding.UTF8.GetBytes(argument));
                 jsonRequestBody.Seek(0, SeekOrigin.Begin);
-                httpContext.Request.Body = jsonRequestBody;
+                request.Body = jsonRequestBody;
+
+                _logger?.LogDebug($"rewrite {originPath} to {newPath} with parameter {argument}!");
 
                 using (var readableResponseBody = new MemoryStream())
                 {
