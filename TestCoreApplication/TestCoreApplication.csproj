@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SoapJsonConversionMiddleware.Model\SoapJsonConversionMiddleware.Model.csproj" />
     <ProjectReference Include="..\SoapJsonConversionMiddleware\SoapJsonConversionMiddleware.csproj" />
   </ItemGroup>
 

@@ -1,9 +1,9 @@
-﻿using System;
+﻿using SoapJsonConversionMiddleware.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Services;
-using TestWebService.Models;
 
 namespace TestWebService
 {
@@ -66,9 +66,37 @@ namespace TestWebService
         }
 
         [WebMethod]
+        public List<Account> GetAccountByNames(List<string> ids)
+        {
+            return ids.Select(id =>
+                new Account
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "123",
+                    EMail = "123@1.com",
+                    Contacts = new List<Contact>
+                        {
+                            new Contact
+                            {
+                                 Id = 3,
+                                  FirstName = "Ne",
+                                   LastName = "fe",
+                            }
+                        }
+                })
+                .ToList();
+        }
+
+        [WebMethod]
         public List<Account> CreateAccounts(List<Account> accounts)
         {
             throw new ArgumentException(nameof(accounts));
+        }
+
+        [WebMethod]
+        public Account CreateAccount(Account account)
+        {
+            throw new ArgumentException(nameof(account));
         }
     }
 }
