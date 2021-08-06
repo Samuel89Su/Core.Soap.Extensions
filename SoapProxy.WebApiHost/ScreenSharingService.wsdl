@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://tempuri.org/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tm="http://microsoft.com/wsdl/mime/textMatching/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://tempuri.org/">
+      <s:element name="CheckG2MLogin">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="email" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="password" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="CheckG2MLoginResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="CheckG2MLoginResult" type="tns:StruResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="StruResponse">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="isSucceed" type="s:boolean" />
+          <s:element minOccurs="0" maxOccurs="1" name="response" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="CreateG2MMeeting">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="email" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="password" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="chatGuid" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="CreateG2MMeetingResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="CreateG2MMeetingResult" type="tns:StruG2MResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="StruG2MResponse">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="isSucceed" type="s:boolean" />
+          <s:element minOccurs="0" maxOccurs="1" name="errorMessage" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="hostURL" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="joinURL" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+    </s:schema>
+  </wsdl:types>
+  <wsdl:message name="CheckG2MLoginSoapIn">
+    <wsdl:part name="parameters" element="tns:CheckG2MLogin" />
+  </wsdl:message>
+  <wsdl:message name="CheckG2MLoginSoapOut">
+    <wsdl:part name="parameters" element="tns:CheckG2MLoginResponse" />
+  </wsdl:message>
+  <wsdl:message name="CreateG2MMeetingSoapIn">
+    <wsdl:part name="parameters" element="tns:CreateG2MMeeting" />
+  </wsdl:message>
+  <wsdl:message name="CreateG2MMeetingSoapOut">
+    <wsdl:part name="parameters" element="tns:CreateG2MMeetingResponse" />
+  </wsdl:message>
+  <wsdl:portType name="ScreenSharingServiceSoap">
+    <wsdl:operation name="CheckG2MLogin">
+      <wsdl:input message="tns:CheckG2MLoginSoapIn" />
+      <wsdl:output message="tns:CheckG2MLoginSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="CreateG2MMeeting">
+      <wsdl:input message="tns:CreateG2MMeetingSoapIn" />
+      <wsdl:output message="tns:CreateG2MMeetingSoapOut" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="ScreenSharingServiceSoap" type="tns:ScreenSharingServiceSoap">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="CheckG2MLogin">
+      <soap:operation soapAction="http://tempuri.org/CheckG2MLogin" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="CreateG2MMeeting">
+      <soap:operation soapAction="http://tempuri.org/CreateG2MMeeting" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="ScreenSharingServiceSoap12" type="tns:ScreenSharingServiceSoap">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="CheckG2MLogin">
+      <soap12:operation soapAction="http://tempuri.org/CheckG2MLogin" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="CreateG2MMeeting">
+      <soap12:operation soapAction="http://tempuri.org/CreateG2MMeeting" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="ScreenSharingService">
+    <wsdl:port name="ScreenSharingServiceSoap" binding="tns:ScreenSharingServiceSoap">
+      <soap:address location="https://commservice_backend/screensharingservice/ScreenSharingService.asmx" />
+    </wsdl:port>
+    <wsdl:port name="ScreenSharingServiceSoap12" binding="tns:ScreenSharingServiceSoap12">
+      <soap12:address location="https://commservice_backend/screensharingservice/ScreenSharingService.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
