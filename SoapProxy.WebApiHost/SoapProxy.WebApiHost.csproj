@@ -71,19 +71,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AndroidPushService.cs" />
     <Compile Include="ApiBrokerMiddleware.cs" />
-    <Compile Include="Connected Services\TestWebService\Reference.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Compile>
     <Compile Include="PathServiceMap.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ScreenSharingService.cs" />
     <Compile Include="Startup.cs" />
-    <Compile Include="TranslateService.cs" />
     <Compile Include="ValuesController.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -91,44 +83,10 @@
     <Content Include="appSettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Include="Connected Services\TestWebService\SoapProxy.WebApiHost.TestWebService.Account.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </None>
-    <None Include="Connected Services\TestWebService\SoapProxy.WebApiHost.TestWebService.CreateAccountsResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </None>
-    <None Include="Connected Services\TestWebService\SoapProxy.WebApiHost.TestWebService.GetAccountResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </None>
-    <None Include="Connected Services\TestWebService\SoapProxy.WebApiHost.TestWebService.GetAccountsResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </None>
-    <None Include="Connected Services\TestWebService\SoapProxy.WebApiHost.TestWebService.HelloWorldResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </None>
-    <None Include="Connected Services\TestWebService\Test.wsdl" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Connected Services\" />
-  </ItemGroup>
-  <ItemGroup>
-    <WCFMetadataStorage Include="Connected Services\TestWebService\" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Connected Services\TestWebService\Test.disco" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Connected Services\TestWebService\configuration91.svcinfo" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Connected Services\TestWebService\configuration.svcinfo" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Connected Services\TestWebService\Reference.svcmap">
-      <Generator>WCF Proxy Generator</Generator>
-      <LastGenOutput>Reference.cs</LastGenOutput>
-    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

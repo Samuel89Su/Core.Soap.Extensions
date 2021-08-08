@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.ServiceModel;
 using System.Text;
@@ -14,13 +15,14 @@ namespace SoapProxy.WebApiHost
 {
     public class ApiBrokerMiddleware : OwinMiddleware
     {
-        private static readonly IEnumerable<Type> _clientTypes = new List<Type>();
+        private static readonly List<Type> _clientTypes = new List<Type>();
 
         static ApiBrokerMiddleware()
         {
-            _clientTypes = (_clientTypes == null || _clientTypes.Count() == 0)
-                ? Assembly.GetExecutingAssembly().GetTypes().Where(t => typeof(ICommunicationObject).IsAssignableFrom(t) || typeof(SoapHttpClientProtocol).IsAssignableFrom(t))
-                : _clientTypes;
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                _clientTypes.AddRange(assembly.GetTypes().Where(t => typeof(SoapHttpClientProtocol).IsAssignableFrom(t)));
+            }
         }
 
         public ApiBrokerMiddleware(OwinMiddleware next) : base(next)
@@ -85,7 +87,7 @@ namespace SoapProxy.WebApiHost
                     }
                 }
 
-                var client = Activator.CreateInstance(clientType);
+                var client = CreateSvcClient(clientType, pathMap);
                 var result = actionMethod.Invoke(client, parameters);
 
                 context.Response.ContentType = "application/json";
@@ -95,6 +97,19 @@ namespace SoapProxy.WebApiHost
             {
                 throw;
             }
+        }
+
+        private object CreateSvcClient(Type svcType, PathServiceMap pathServiceMap)
+        {
+            var client = Activator.CreateInstance(svcType) as SoapHttpClientProtocol;
+
+            client.Url = pathServiceMap.OriginSvcUrl;
+            if (!string.IsNullOrWhiteSpace(pathServiceMap.Http_Proxy))
+            {
+                client.Proxy = new WebProxy(pathServiceMap.Http_Proxy);
+            }
+
+            return client;
         }
 
         private object[] ParseForm(IFormCollection form, ParameterInfo[] parameterInfos)

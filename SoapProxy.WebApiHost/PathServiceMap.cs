@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -9,6 +10,10 @@ namespace SoapProxy.WebApiHost
         public string PathRoot { get; set; }
 
         public string ServiceClient { get; set; }
+
+        public string OriginSvcUrl { get; set; }
+
+        public string Http_Proxy { get; set; }
 
         public Dictionary<string, string> PathActions { get; set; } = new Dictionary<string, string>();
 
