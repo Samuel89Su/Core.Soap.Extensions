@@ -21,10 +21,10 @@ namespace SoapJsonConversionMiddleware
             Contract = contract;
             Name = contractAttribute.Name ?? operationMethod.Name;
             SoapAction = string.IsNullOrWhiteSpace(contractAttribute.Action)
-                ? $"{contract.Namespace.TrimEnd('/')}/{contract.Name}/{Name}"
+                ? $"{contract.Namespace.Trim('/')}/{contract.Name}/{Name}"
                 : contractAttribute.Action.StartsWith(contract.Namespace, StringComparison.OrdinalIgnoreCase)
                 ? contractAttribute.Action
-                : new Uri(new Uri(contract.Namespace), contractAttribute.Action).AbsoluteUri;
+                : $"{contract.Namespace.Trim('/')}/{contractAttribute.Action.Trim('/')}";
             IsOneWay = contractAttribute.IsOneWay;
             ReplyAction = contractAttribute.ReplyAction;
             DispatchMethod = operationMethod;

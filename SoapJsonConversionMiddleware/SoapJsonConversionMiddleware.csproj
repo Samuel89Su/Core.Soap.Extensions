@@ -6,8 +6,8 @@
     <Description>Parse SOAP message to json, rewrite request path to ApiController</Description>
     <PackageProjectUrl>https://github.com/Samuel89Su/Core.Soap.Extensions</PackageProjectUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <Version>1.0.2</Version>
-    <PackageReleaseNotes>refactor xml serialization</PackageReleaseNotes>
+    <Version>1.0.3</Version>
+    <PackageReleaseNotes>Fix op action bug</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
