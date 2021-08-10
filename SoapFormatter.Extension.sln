@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31424.327
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestWebService", "TestWebService\TestWebService.csproj", "{5FAD9000-3DFE-4375-86A1-1F242C194598}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestCoreApplication", "TestCoreApplication\TestCoreApplication.csproj", "{830B7EE2-F50B-4571-BB62-59D46DD0E2D6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapClient", "SoapClient\SoapClient.csproj", "{B21D7304-F1F2-4C8F-A898-00F0209A51DC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5FAD9000-3DFE-4375-86A1-1F242C194598} = {5FAD9000-3DFE-4375-86A1-1F242C194598}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversionMiddleware", "SoapJsonConversionMiddleware\SoapJsonConversionMiddleware.csproj", "{8A381285-2A08-4DAB-A3AF-F423547FFCB9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversionMiddleware.Model", "SoapJsonConversionMiddleware.Model\SoapJsonConversionMiddleware.Model.csproj", "{85305A24-65F9-4FFD-88B8-DE59EECFB5C7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5FAD9000-3DFE-4375-86A1-1F242C194598}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FAD9000-3DFE-4375-86A1-1F242C194598}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FAD9000-3DFE-4375-86A1-1F242C194598}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FAD9000-3DFE-4375-86A1-1F242C194598}.Release|Any CPU.Build.0 = Release|Any CPU
+		{830B7EE2-F50B-4571-BB62-59D46DD0E2D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{830B7EE2-F50B-4571-BB62-59D46DD0E2D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{830B7EE2-F50B-4571-BB62-59D46DD0E2D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{830B7EE2-F50B-4571-BB62-59D46DD0E2D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B21D7304-F1F2-4C8F-A898-00F0209A51DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B21D7304-F1F2-4C8F-A898-00F0209A51DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B21D7304-F1F2-4C8F-A898-00F0209A51DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B21D7304-F1F2-4C8F-A898-00F0209A51DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A381285-2A08-4DAB-A3AF-F423547FFCB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A381285-2A08-4DAB-A3AF-F423547FFCB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A381285-2A08-4DAB-A3AF-F423547FFCB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A381285-2A08-4DAB-A3AF-F423547FFCB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85305A24-65F9-4FFD-88B8-DE59EECFB5C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{85305A24-65F9-4FFD-88B8-DE59EECFB5C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{85305A24-65F9-4FFD-88B8-DE59EECFB5C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85305A24-65F9-4FFD-88B8-DE59EECFB5C7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D0BE98B6-D0F6-4708-9210-90EC3B02DB67}
+	EndGlobalSection
+EndGlobal

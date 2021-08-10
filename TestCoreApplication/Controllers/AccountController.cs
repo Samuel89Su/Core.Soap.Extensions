@@ -17,16 +17,37 @@ namespace TestCoreApplication.Controllers
         {
         }
 
-        [OperationContract(Action = "GetAccount")]
-        [HttpPost]
-        public Account GetAccount(Guid id)
-        {
-            var action = Url.Action("Get", "Values");
+        //[OperationContract(Action = "GetAccount")]
+        //[HttpPost]
+        //public Account GetAccount(Guid id)
+        //{
+        //    var account = new Account
+        //    {
+        //        Id = id,
+        //        Name = "123",
+        //        EMail = "123@1.com",
+        //        Contacts = new List<Contact>
+        //            {
+        //                new Contact
+        //                {
+        //                     Id = 3,
+        //                      FirstName = "Ne",
+        //                       LastName = "fe",
+        //                }
+        //            }
+        //    };
 
+        //    return account;
+        //}
+
+        [OperationContract(Action = "GetAccountBy")]
+        [HttpPost("Account")]
+        public async Task<Account> GetAccountAsync(Guid id, string name)
+        {
             var account = new Account
             {
                 Id = id,
-                Name = "123",
+                Name = name,
                 EMail = "123@1.com",
                 Contacts = new List<Contact>
                     {

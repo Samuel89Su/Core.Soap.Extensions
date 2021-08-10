@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -16,7 +17,9 @@ using System.Runtime.Serialization;
 using System.ServiceModel;
 using System.ServiceModel.Channels;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
 
@@ -26,9 +29,10 @@ namespace SoapJsonConversionMiddleware
     {
         private const string SOAP_HEADER_ACTION = "SOAPAction";
         private const string MEDIATYPE_JSON = "application/json; charset=utf-8";
+        private const string MEDIATYPE_FORM = "application/x-www-form-urlencoded";
 
-        private const string SUFFIX_CONTROLLER = "controller";
-        private const string SUFFIX_ACTION = "action";
+        private const string TEMP_SUFFIX_CONTROLLER = "controller";
+        private const string TEMP_SUFFIX_ACTION = "[action]";
 
         private readonly RequestDelegate _next;
         private readonly string _endpointPath;
@@ -50,8 +54,7 @@ namespace SoapJsonConversionMiddleware
             var routeAttribute = serviceType.GetCustomAttribute<RouteAttribute>()
                 ?? throw new ArgumentException($"Controller {serviceType.Name} must has RouteAttribute!");
             _routeTemplate = "/" + routeAttribute.Template
-                .Replace($"[{SUFFIX_CONTROLLER}]", serviceType.Name.Replace(SUFFIX_CONTROLLER, string.Empty, StringComparison.OrdinalIgnoreCase), StringComparison.OrdinalIgnoreCase)
-                .Replace($"[{SUFFIX_ACTION}]", "{0}", StringComparison.OrdinalIgnoreCase);
+                .Replace($"[{TEMP_SUFFIX_CONTROLLER}]", serviceType.Name.Replace(TEMP_SUFFIX_CONTROLLER, string.Empty, StringComparison.OrdinalIgnoreCase), StringComparison.OrdinalIgnoreCase);
             if (string.IsNullOrWhiteSpace(_routeTemplate))
             {
                 throw new ArgumentException($"Can not determine route template for Controller {serviceType.Name}!");
@@ -93,7 +96,7 @@ namespace SoapJsonConversionMiddleware
                     }
 
                     // get operation action from registation
-                    operationAction = _service.Operations.Where(o => o.SoapAction.Equals(requestMessage.Headers.Action, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+                    operationAction = _service.Operations.Where(o => o.FullSoapAction.Equals(requestMessage.Headers.Action, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
                     if (operationAction == null)
                     {
                         throw new InvalidOperationException($"No operation found for specified action: {requestMessage.Headers.Action}");
@@ -104,17 +107,24 @@ namespace SoapJsonConversionMiddleware
 
                 // rewrite path
                 var originPath = request.Path.Value;
-                var newPath = string.Format(_routeTemplate, operationAction.Name);
-                request.Path = newPath;
-                request.ContentType = MEDIATYPE_JSON;
+                request.Path = BuildRoutePath(operationAction);
+                request.ContentType = MEDIATYPE_FORM;
 
                 // replace Request.Body with first argument
-                var argument = JsonConvert.SerializeObject(arguments.FirstOrDefault());
-                var jsonRequestBody = new MemoryStream(Encoding.UTF8.GetBytes(argument));
-                jsonRequestBody.Seek(0, SeekOrigin.Begin);
-                request.Body = jsonRequestBody;
+                var argument = FormatArguments(arguments, operationAction.DispatchMethod.GetParameters());
+                if (operationAction.DispatchMethod.GetParameters().Count() > 1)
+                {
+                    request.ContentType = MEDIATYPE_FORM;
+                    request.QueryString += new QueryString("?" + argument);
+                }
+                else
+                {
+                    var jsonRequestBody = new MemoryStream(Encoding.UTF8.GetBytes(argument));
+                    jsonRequestBody.Seek(0, SeekOrigin.Begin);
+                    request.Body = jsonRequestBody;
+                }
 
-                _logger?.LogDebug($"rewrite {originPath} to {newPath} with parameter {argument}!");
+                _logger?.LogDebug($"rewrite {originPath} to {request.Path} with parameter {argument}!");
 
                 var returntype = operationAction.DispatchMethod.ReturnType;
                 if (returntype == typeof(Task))
@@ -159,6 +169,60 @@ namespace SoapJsonConversionMiddleware
             }
         }
 
+        private static readonly Regex regEx = new Regex("Async$");
+        private string BuildRoutePath(OperationDescription operation)
+        {
+            var httpVerbAttribute = operation.DispatchMethod.GetCustomAttributes()
+                .FirstOrDefault(a => typeof(HttpPostAttribute).IsAssignableFrom(a.GetType()))
+                 as HttpPostAttribute;
+            var actionName = regEx.Replace(operation.DispatchMethod.Name, string.Empty);
+
+            var path = _routeTemplate.Replace(TEMP_SUFFIX_ACTION, actionName, StringComparison.OrdinalIgnoreCase);
+            if (httpVerbAttribute != null && !string.IsNullOrWhiteSpace(httpVerbAttribute.Template))
+            {
+                var subPath = httpVerbAttribute.Template.Replace(TEMP_SUFFIX_ACTION, actionName, StringComparison.OrdinalIgnoreCase);
+                return path + "/" + subPath;
+            }
+
+            return path;
+        }
+
+        private string FormatArguments(object[] arguments, ParameterInfo[] parameters)
+        {
+            if (arguments == null || arguments.Length == 0)
+            {
+                return string.Empty;
+            }
+            if (arguments.Length == 1)
+            {
+                return JsonConvert.SerializeObject(arguments.FirstOrDefault());
+            }
+            else
+            {
+                var values = new Dictionary<string, string>();
+                for (var i = 0; i < parameters.Count(); i++)
+                {
+                    var parameter = parameters[i];
+                    var argument = arguments.Skip(i).FirstOrDefault();
+                    if (argument != null)
+                    {
+                        if (parameter.ParameterType.IsPrimitive || parameter.ParameterType == typeof(Guid) || parameter.ParameterType == typeof(string))
+                        {
+                            values[parameter.Name] = HttpUtility.UrlEncode(argument.ToString());
+                        }
+                        else if (parameter.ParameterType.IsClass && !typeof(IEnumerable).IsAssignableFrom(parameter.ParameterType))
+                        {
+                            foreach (var token in JToken.FromObject(argument).Children().Cast<JProperty>())
+                            {
+                                values[string.Concat(parameter.Name, ".", token.Name)] = HttpUtility.UrlEncode(token.ToString());
+                            }
+                        }
+                    }
+                }
+                return string.Join("&", values.Select(v => string.Concat(v.Key, "=", v.Value)));
+            }
+        }
+
         private object[] GetRequestArguments(Message requestMessage, OperationDescription operation)
         {
             try
@@ -170,7 +234,7 @@ namespace SoapJsonConversionMiddleware
                 using (var xmlReader = requestMessage.GetReaderAtBodyContents())
                 {
                     // 查找的操作数据的元素
-                    xmlReader.ReadStartElement(operation.Name, operation.Contract.Namespace);
+                    xmlReader.ReadStartElement(operation.SoapAction, operation.Contract.Namespace);
                     for (int i = 0; i < parameters.Length; i++)
                     {
                         arguments.Add(SoapXMLHandler.Deserialize(xmlReader, parameters[i], operation.Contract.Namespace));

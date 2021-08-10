@@ -11,6 +11,7 @@ namespace SoapJsonConversionMiddleware
     {
         public ContractDescription Contract { get; private set; }
         public string SoapAction { get; private set; }
+        public string FullSoapAction { get; private set; }
         public string ReplyAction { get; private set; }
         public string Name { get; private set; }
         public MethodInfo DispatchMethod { get; private set; }
@@ -21,6 +22,9 @@ namespace SoapJsonConversionMiddleware
             Contract = contract;
             Name = contractAttribute.Name ?? operationMethod.Name;
             SoapAction = string.IsNullOrWhiteSpace(contractAttribute.Action)
+                ? Name
+                : contractAttribute.Action.Trim('/');
+            FullSoapAction = string.IsNullOrWhiteSpace(contractAttribute.Action)
                 ? $"{contract.Namespace.Trim('/')}/{contract.Name}/{Name}"
                 : contractAttribute.Action.StartsWith(contract.Namespace, StringComparison.OrdinalIgnoreCase)
                 ? contractAttribute.Action
