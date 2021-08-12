@@ -1,21 +1,88 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SoapJsonConversionMiddleware;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using Xunit;
 using Shouldly;
-using System.Xml.Serialization;
-using System.IO;
-using System.Xml;
+using SoapJsonConversion;
+using Newtonsoft.Json.Linq;
 using System.Linq;
-using System.Collections;
-using SoapJsonConversionMiddleware.Model;
+using System.Xml.Serialization;
+using System.Xml;
+using System.IO;
+using SoapJsonConversion.Model;
 
-namespace SoapJsonConversionMiddleware.Tests
+namespace SoapJsonConversion.Tests
 {
-    public class SOAPMiddlewareTests
+    public class SoapXMLHandlerTests
     {
+        [Fact]
+        public void ParseJsonToArguments_Detect_Test()
+        {
+            var parameters = typeof(AndroidStructNotification).GetMethod("Detect").GetParameters();
+
+            var jtoken = JToken.Parse("{\"auth\":\"autho\",\"text\":\"tttrttr\"}");
+
+            var arguments = SoapXMLHandler.ParseJsonToArguments(jtoken, parameters);
+
+            arguments.ShouldNotBeNull();
+            arguments.Length.ShouldBe(2);
+            arguments[0].ShouldBe("autho");
+            arguments[1].ShouldBe("tttrttr");
+        }
+
+        [Fact]
+        public void ParseJsonToArguments_Translate_Test()
+        {
+            var parameters = typeof(AndroidStructNotification).GetMethod("Translate").GetParameters();
+
+            var jtoken = JToken.Parse("{\"auth\":\"autho\",\"texts\":[\"tttrttr\",\"yterytryt\"],\"sourceLanguage\":\"en\",\"targetLanguage\":\"ch\",\"isHtml\":true}");
+
+            var arguments = SoapXMLHandler.ParseJsonToArguments(jtoken, parameters);
+
+            arguments.ShouldNotBeNull();
+            arguments.Length.ShouldBe(5);
+            arguments[0].ShouldBe("autho");
+            arguments[1].ShouldBeOfType<string[]>();
+            (arguments[1] as string[]).Length.ShouldBe(2);
+            arguments[2].ShouldBe("en");
+            arguments[3].ShouldBe("ch");
+            arguments[4].ShouldBe(true);
+
+            jtoken = JToken.Parse("{\"auth\":\"autho\",\"texts\":[\"tttrttr\",\"yterytryt\"],\"sourceLanguage\":\"en\",\"targetLanguage\":\"ch\"}");
+
+            arguments = SoapXMLHandler.ParseJsonToArguments(jtoken, parameters);
+
+            arguments.ShouldNotBeNull();
+            arguments.Length.ShouldBe(4);
+            arguments[0].ShouldBe("autho");
+            arguments[1].ShouldBeOfType<string[]>();
+            (arguments[1] as string[]).Length.ShouldBe(2);
+            arguments[2].ShouldBe("en");
+            arguments[3].ShouldBe("ch");
+        }
+
+        [Fact]
+        public void ParseJsonToArguments_NewPushNotification_Test()
+        {
+            try
+            {
+                var parameters = typeof(AndroidStructNotification).GetMethod("NewPushNotification").GetParameters();
+                var jtoken = JToken.Parse("[{\"_androidToken\":\"564f5456d\",\"_type\":1,\"_alertMessage\":\"ghdegredgre\",\"_visitorId\":543543},{\"_androidToken\":\"fcm:\",\"_type\":1,\"_alertMessage\":\"ghdegredgre\",\"_visitorId\":543543,\"_visitorGuid\":\"29dad7b2-7d9c-46aa-b8ed-19386514175e\",\"_partnerId\":\"fsafdsgfdsghrfd\"}]");
+
+                var arguments = SoapXMLHandler.ParseJsonToArguments(jtoken, parameters);
+
+                arguments.ShouldNotBeNull();
+                arguments.Length.ShouldBe(1);
+                var notifications = arguments.First() as AndroidStructNotification[];
+                notifications.Count().ShouldBe(2);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+
         const string @namespace = "http://webservice.com";
 
         [Fact(DisplayName = "Deserialize Guid")]
@@ -61,7 +128,7 @@ namespace SoapJsonConversionMiddleware.Tests
 
                 var outerXml = SoapXMLHandler.OverwriteSoapXml(parameterType, parameterName, @namespace, xmlReader);
                 var guids = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as List<Guid>;
-                
+
                 guids.ShouldNotBeNull();
                 guids.Count.ShouldBe(2);
                 guids.ForEach(g => g.ShouldNotBe(Guid.Empty));
@@ -86,10 +153,10 @@ namespace SoapJsonConversionMiddleware.Tests
 
                 var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
                 xmlReader.ReadStartElement(action, @namespace);
-                
+
                 var outerXml = SoapXMLHandler.OverwriteSoapXml(parameterType, parameterName, @namespace, xmlReader);
                 var account = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as Account;
-                
+
                 account.ShouldNotBeNull();
                 account.Id.ShouldNotBe(Guid.Empty);
                 account.Contacts.ShouldNotBeNull();
@@ -115,10 +182,10 @@ namespace SoapJsonConversionMiddleware.Tests
 
                 var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
                 xmlReader.ReadStartElement(action, @namespace);
-                
+
                 var outerXml = SoapXMLHandler.OverwriteSoapXml(parameterType, parameterName, @namespace, xmlReader);
                 var accounts = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as List<Account>;
-                
+
                 accounts.ShouldNotBeNull();
                 accounts.Count.ShouldBe(2);
                 accounts.Last().Id.ShouldNotBe(Guid.Empty);
@@ -129,6 +196,68 @@ namespace SoapJsonConversionMiddleware.Tests
             {
                 throw;
             }
+        }
+
+        [Fact(DisplayName = "Deserialize string")]
+        public void Deserialize_String_Test()
+        {
+            try
+            {
+                var parameterType = typeof(string);
+                var parameterName = "id";
+                var action = "GetAccount";
+                var xml = "<GetAccount xmlns=\"http://webservice.com\"><id>29dad7b2-7d9c-46aa-b8ed-19386514175e</id></GetAccount>";
+
+                var xmlSerializer = new XmlSerializer(parameterType);
+
+                var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
+                xmlReader.ReadStartElement(action, @namespace);
+
+                var outerXml = SoapXMLHandler.OverwriteSoapXml(parameterType, parameterName, @namespace, xmlReader);
+                var guid = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml)));
+
+                guid.ShouldBe("29dad7b2-7d9c-46aa-b8ed-19386514175e");
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+    }
+
+    public partial class AndroidStructNotification
+    {
+        /// <remarks/>
+        public string _androidToken { get; set; }
+
+        /// <remarks/>
+        public int _type { get; set; }
+
+        /// <remarks/>
+        public string _alertMessage { get; set; }
+
+        /// <remarks/>
+        public long _visitorId { get; set; }
+
+        /// <remarks/>
+        public string _visitorGuid { get; set; }
+
+        /// <remarks/>
+        public string _partnerId { get; set; }
+
+
+        public string Detect(string auth, string text)
+        {
+            return "en";
+        }
+
+        public string[] Translate(string auth, string[] texts, string sourceLanguage, string targetLanguage, bool isHtml)
+        {
+            return new string[] { "1", "2" };
+        }
+
+        public void NewPushNotification([System.Xml.Serialization.XmlArrayItemAttribute(IsNullable = false)] AndroidStructNotification[] notifications)
+        {
         }
     }
 }

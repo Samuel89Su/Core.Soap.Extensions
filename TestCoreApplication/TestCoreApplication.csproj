@@ -12,8 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SoapJsonConversionMiddleware.Model\SoapJsonConversionMiddleware.Model.csproj" />
-    <ProjectReference Include="..\SoapJsonConversionMiddleware\SoapJsonConversionMiddleware.csproj" />
+    <ProjectReference Include="..\SoapJsonConversionMiddleware.Model\SoapJsonConversion.Model.csproj" />
+    <ProjectReference Include="..\SoapJsonConversionMiddleware\SoapJsonConversion.Middleware.csproj" />
   </ItemGroup>
 
   <ItemGroup>

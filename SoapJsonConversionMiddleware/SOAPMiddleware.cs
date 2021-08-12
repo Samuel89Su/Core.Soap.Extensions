@@ -23,7 +23,7 @@ using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace SoapJsonConversionMiddleware
+namespace SoapJsonConversion.Middleware
 {
     public class SOAPMiddleware
     {
@@ -107,24 +107,10 @@ namespace SoapJsonConversionMiddleware
 
                 // rewrite path
                 var originPath = request.Path.Value;
-                request.Path = BuildRoutePath(operationAction);
-                request.ContentType = MEDIATYPE_FORM;
 
-                // replace Request.Body with first argument
-                var argument = FormatArguments(arguments, operationAction.DispatchMethod.GetParameters());
-                if (operationAction.DispatchMethod.GetParameters().Count() > 1)
-                {
-                    request.ContentType = MEDIATYPE_FORM;
-                    request.QueryString += new QueryString("?" + argument);
-                }
-                else
-                {
-                    var jsonRequestBody = new MemoryStream(Encoding.UTF8.GetBytes(argument));
-                    jsonRequestBody.Seek(0, SeekOrigin.Begin);
-                    request.Body = jsonRequestBody;
-                }
+                var requestBody = OverwriteRequest(request, arguments, operationAction, _routeTemplate);
 
-                _logger?.LogDebug($"rewrite {originPath} to {request.Path} with parameter {argument}!");
+                _logger?.LogDebug($"rewrite {originPath} to {request.Path} with parameter {requestBody}!");
 
                 var returntype = operationAction.DispatchMethod.ReturnType;
                 if (returntype == typeof(Task))
@@ -158,26 +144,40 @@ namespace SoapJsonConversionMiddleware
                             {
                                 var res = await bodyReader.ReadToEndAsync();
                                 // deserialize response
-                                returnObject = JsonConvert.DeserializeObject(res, returntype);
+                                returnObject = JsonConvert.DeserializeObject<JToken>(res).ToObject(returntype);
                             }
                         }
 
-                        var buffer = SoapXMLHandler.Serialize(returnObject, returntype, operationAction, _service.Contract.Namespace);
-                        await httpContext.Response.Body.WriteAsync(buffer, 0, buffer.Length);
+                        var buffer = SoapXMLHandler.Serialize(returnObject, operationAction.DispatchMethod.ReturnParameter, operationAction.SoapAction, _service.Contract.Namespace);
+                        await httpContext.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(buffer), 0, buffer.Length);
                     }
                 }
             }
         }
 
-        private static readonly Regex regEx = new Regex("Async$");
-        private string BuildRoutePath(OperationDescription operation)
+        private static string OverwriteRequest(HttpRequest httpRequest, object[] arguments, OperationDescription operationDescription, string routeTemplate)
         {
-            var httpVerbAttribute = operation.DispatchMethod.GetCustomAttributes()
+            httpRequest.Path = BuildRoutePath(operationDescription.DispatchMethod, routeTemplate);
+            httpRequest.ContentType = MEDIATYPE_JSON;
+
+            // replace Request.Body with first argument
+            var requestBody = FormatArguments(arguments, operationDescription.DispatchMethod.GetParameters());
+            var jsonRequestBody = new MemoryStream(Encoding.UTF8.GetBytes(requestBody));
+            jsonRequestBody.Seek(0, SeekOrigin.Begin);
+            httpRequest.Body = jsonRequestBody;
+
+            return requestBody;
+        }
+
+        private static readonly Regex regEx = new Regex("Async$");
+        private static string BuildRoutePath(MethodInfo method, string routeTemplate)
+        {
+            var httpVerbAttribute = method.GetCustomAttributes()
                 .FirstOrDefault(a => typeof(HttpPostAttribute).IsAssignableFrom(a.GetType()))
                  as HttpPostAttribute;
-            var actionName = regEx.Replace(operation.DispatchMethod.Name, string.Empty);
+            var actionName = regEx.Replace(method.Name, string.Empty);
 
-            var path = _routeTemplate.Replace(TEMP_SUFFIX_ACTION, actionName, StringComparison.OrdinalIgnoreCase);
+            var path = routeTemplate.Replace(TEMP_SUFFIX_ACTION, actionName, StringComparison.OrdinalIgnoreCase);
             if (httpVerbAttribute != null && !string.IsNullOrWhiteSpace(httpVerbAttribute.Template))
             {
                 var subPath = httpVerbAttribute.Template.Replace(TEMP_SUFFIX_ACTION, actionName, StringComparison.OrdinalIgnoreCase);
@@ -187,13 +187,14 @@ namespace SoapJsonConversionMiddleware
             return path;
         }
 
-        private string FormatArguments(object[] arguments, ParameterInfo[] parameters)
+        private static string FormatArguments(object[] arguments, ParameterInfo[] parameters)
         {
             if (arguments == null || arguments.Length == 0)
             {
                 return string.Empty;
             }
-            if (arguments.Length == 1)
+            var firstParameter = parameters.First();
+            if (parameters.Length == 1 && firstParameter.ParameterType.IsClass && typeof(string) != firstParameter.ParameterType)
             {
                 return JsonConvert.SerializeObject(arguments.FirstOrDefault());
             }
@@ -210,11 +211,26 @@ namespace SoapJsonConversionMiddleware
                         {
                             values[parameter.Name] = HttpUtility.UrlEncode(argument.ToString());
                         }
-                        else if (parameter.ParameterType.IsClass && !typeof(IEnumerable).IsAssignableFrom(parameter.ParameterType))
+                        else if (parameter.ParameterType.IsClass)
                         {
-                            foreach (var token in JToken.FromObject(argument).Children().Cast<JProperty>())
+                            if (!typeof(IEnumerable).IsAssignableFrom(parameter.ParameterType))
                             {
-                                values[string.Concat(parameter.Name, ".", token.Name)] = HttpUtility.UrlEncode(token.ToString());
+                                foreach (var token in JToken.FromObject(argument).Children().Cast<JProperty>())
+                                {
+                                    values[string.Concat(parameter.Name, ".", token.Name)] = HttpUtility.UrlEncode(token.ToString());
+                                }
+                            }
+                            else
+                            {
+                                if (parameter.ParameterType.IsGenericType)
+                                {
+                                    var genericArgType = parameter.ParameterType.GenericTypeArguments.First();
+                                    var jArray = JToken.FromObject(argument) as JArray;
+                                    foreach (var token in jArray)
+                                    {
+                                        values[string.Concat(parameter.Name, "[]")] = HttpUtility.UrlEncode(token.ToString());
+                                    }
+                                }
                             }
                         }
                     }
@@ -227,18 +243,22 @@ namespace SoapJsonConversionMiddleware
         {
             try
             {
-                var parameters = operation.DispatchMethod.GetParameters();
                 var arguments = new List<object>();
+                var parameters = operation.DispatchMethod.GetParameters();
+                if (parameters == null || parameters.Count() == 0)
+                {
+                    return arguments.ToArray();
+                }
+                if (parameters.Count() > 1)
+                {
+                    throw new InvalidOperationException($"{operation.DispatchMethod.DeclaringType.Name}.{operation.DispatchMethod.Name} must be a single parameter method, but with parameters {string.Join(",", parameters.Select(p => p.Name))}!");
+                }
 
-                // 反序列化请求包和对象
+                var parameter = parameters.First();
                 using (var xmlReader = requestMessage.GetReaderAtBodyContents())
                 {
-                    // 查找的操作数据的元素
                     xmlReader.ReadStartElement(operation.SoapAction, operation.Contract.Namespace);
-                    for (int i = 0; i < parameters.Length; i++)
-                    {
-                        arguments.Add(SoapXMLHandler.Deserialize(xmlReader, parameters[i], operation.Contract.Namespace));
-                    }
+                    arguments.Add(SoapXMLHandler.Deserialize(xmlReader, parameter, operation.Contract.Namespace));
                 }
 
                 return arguments.ToArray();

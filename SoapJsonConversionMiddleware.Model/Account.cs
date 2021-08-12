@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SoapJsonConversionMiddleware.Model
+namespace SoapJsonConversion.Model
 {
     public class Account
     {

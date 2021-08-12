@@ -1,12 +1,16 @@
 ﻿using Microsoft.Owin;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Web;
 using System.Web.Services.Protocols;
 
 namespace SoapProxy.WebApiHost
@@ -70,18 +74,26 @@ namespace SoapProxy.WebApiHost
                 var parameterInfos = actionMethod.GetParameters();
                 if (parameterInfos != null || parameterInfos.Count() > 0)
                 {
-                    if (request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var form = await request.ReadFormAsync();
-                        parameters = ParseForm(form, parameterInfos);
-                    }
-                    else if (request.ContentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase))
+                    if (request.ContentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase))
                     {
                         using (var reader = new StreamReader(request.Body))
                         {
                             var raw = await reader.ReadToEndAsync();
                             parameters = new object[] { JsonConvert.DeserializeObject(raw, parameterInfos.First().ParameterType) };
                         }
+                    }
+                    else
+                    {
+                        IEnumerable<KeyValuePair<string, string[]>> query = null;
+                        if (request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
+                        {
+                            query = await request.ReadFormAsync();
+                        }
+                        if (request.QueryString.HasValue)
+                        {
+                            query = query.Concat(request.Query);
+                        }
+                        parameters = ParseForm(query, parameterInfos);
                     }
                 }
 
@@ -110,8 +122,41 @@ namespace SoapProxy.WebApiHost
             return client;
         }
 
-        private object[] ParseForm(IFormCollection form, ParameterInfo[] parameterInfos)
+        private object[] ParseForm(IEnumerable<KeyValuePair<string, string[]>> form, ParameterInfo[] parameterInfos)
         {
+            if (form == null || form.Count()==0)
+            {
+                return new object[] { };
+            }
+            var keyGroups = form.GroupBy(kv => kv.Key);
+            var formDic = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var group in keyGroups)
+            {
+                formDic[group.Key] = group.SelectMany(g => g.Value);
+            }
+
+            var arguments = new object[parameterInfos.Length];
+            for (int i = 0; i < parameterInfos.Length; i++)
+            {
+                var parameter = parameterInfos[i];
+                if (!formDic.TryGetValue(parameter.Name, out IEnumerable<string> values) || values == null || values.Count() == 0)
+                {
+                    arguments[i] = null;
+                }
+                else if (typeof(string) == parameter.ParameterType)
+                {
+                    arguments[i] = values.First();
+                }
+                else if (parameter.ParameterType == typeof(Guid) || parameter.ParameterType.IsPrimitive)
+                {
+                    arguments[i] = JToken.FromObject(values.First()).ToObject(parameter.ParameterType);
+                }
+                else if (typeof(IEnumerable).IsAssignableFrom(parameter.ParameterType))
+                {
+                    arguments[i] = JToken.FromObject(values).ToObject(parameter.ParameterType);
+                }
+            }
+
             return new object[0];
         }
     }

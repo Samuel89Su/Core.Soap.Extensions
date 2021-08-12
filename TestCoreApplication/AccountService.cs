@@ -1,4 +1,4 @@
-﻿using SoapJsonConversionMiddleware.Model;
+﻿using SoapJsonConversion.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;

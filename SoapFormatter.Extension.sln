@@ -12,9 +12,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapClient", "SoapClient\So
 		{5FAD9000-3DFE-4375-86A1-1F242C194598} = {5FAD9000-3DFE-4375-86A1-1F242C194598}
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversionMiddleware", "SoapJsonConversionMiddleware\SoapJsonConversionMiddleware.csproj", "{8A381285-2A08-4DAB-A3AF-F423547FFCB9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversion.Middleware", "SoapJsonConversionMiddleware\SoapJsonConversion.Middleware.csproj", "{8A381285-2A08-4DAB-A3AF-F423547FFCB9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversionMiddleware.Model", "SoapJsonConversionMiddleware.Model\SoapJsonConversionMiddleware.Model.csproj", "{85305A24-65F9-4FFD-88B8-DE59EECFB5C7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversion.Model", "SoapJsonConversionMiddleware.Model\SoapJsonConversion.Model.csproj", "{85305A24-65F9-4FFD-88B8-DE59EECFB5C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapProxy.WebApiHost", "SoapProxy.WebApiHost\SoapProxy.WebApiHost.csproj", "{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversion.Common", "SoapJsonConversion.Common\SoapJsonConversion.Common.csproj", "{D06E1687-280D-4727-9796-BBF83F2DA4E3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{62E7FDED-09D7-4F61-BEC9-0C0FFF9B4519}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversion.CommonTests", "SoapJsonConversion.CommonTests\SoapJsonConversion.CommonTests.csproj", "{34C4CBBB-F598-4D56-B7A4-5CBCCC7B0A94}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,9 +50,24 @@ Global
 		{85305A24-65F9-4FFD-88B8-DE59EECFB5C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{85305A24-65F9-4FFD-88B8-DE59EECFB5C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{85305A24-65F9-4FFD-88B8-DE59EECFB5C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D06E1687-280D-4727-9796-BBF83F2DA4E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D06E1687-280D-4727-9796-BBF83F2DA4E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D06E1687-280D-4727-9796-BBF83F2DA4E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D06E1687-280D-4727-9796-BBF83F2DA4E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34C4CBBB-F598-4D56-B7A4-5CBCCC7B0A94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34C4CBBB-F598-4D56-B7A4-5CBCCC7B0A94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34C4CBBB-F598-4D56-B7A4-5CBCCC7B0A94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34C4CBBB-F598-4D56-B7A4-5CBCCC7B0A94}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{34C4CBBB-F598-4D56-B7A4-5CBCCC7B0A94} = {62E7FDED-09D7-4F61-BEC9-0C0FFF9B4519}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D0BE98B6-D0F6-4708-9210-90EC3B02DB67}

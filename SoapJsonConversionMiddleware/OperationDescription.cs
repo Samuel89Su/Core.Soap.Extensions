@@ -5,7 +5,7 @@ using System.Reflection;
 using System.ServiceModel;
 using System.Threading.Tasks;
 
-namespace SoapJsonConversionMiddleware
+namespace SoapJsonConversion.Middleware
 {
     public class OperationDescription
     {

@@ -3,14 +3,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.ServiceModel;
-using System.Threading.Tasks;
-using SoapJsonConversionMiddleware;
-using TestCoreApplication.Controllers;
 using NLog.Contrib.Targets.WebSocket.Web.AspNetCore;
+using System;
+using TestCoreApplication.Controllers;
+using SoapJsonConversion.Middleware;
 
 namespace TestCoreApplication
 {

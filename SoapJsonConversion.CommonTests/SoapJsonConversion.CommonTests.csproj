@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -8,9 +8,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
-    <PackageReference Include="Moq" Version="4.14.0" />
-    <PackageReference Include="MSTest.TestAdapter" Version="2.1.0" />
-    <PackageReference Include="MSTest.TestFramework" Version="2.1.0" />
     <PackageReference Include="coverlet.collector" Version="1.2.0" />
     <PackageReference Include="Shouldly" Version="4.0.0" />
     <PackageReference Include="xunit" Version="2.4.0" />
@@ -21,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SoapJsonConversionMiddleware.Model\SoapJsonConversionMiddleware.Model.csproj" />
-    <ProjectReference Include="..\SoapJsonConversionMiddleware\SoapJsonConversionMiddleware.csproj" />
+    <ProjectReference Include="..\SoapJsonConversion.Common\SoapJsonConversion.Common.csproj" />
+    <ProjectReference Include="..\SoapJsonConversionMiddleware.Model\SoapJsonConversion.Model.csproj" />
   </ItemGroup>
 
 </Project>

@@ -255,9 +255,9 @@
     <Content Include="Scripts\jquery-3.4.1.min.map" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SoapJsonConversionMiddleware.Model\SoapJsonConversionMiddleware.Model.csproj">
-      <Project>{c46e1bb1-cd69-4d8d-ab80-45e8366c0346}</Project>
-      <Name>SoapJsonConversionMiddleware.Model</Name>
+    <ProjectReference Include="..\SoapJsonConversionMiddleware.Model\SoapJsonConversion.Model.csproj">
+      <Project>{85305a24-65f9-4ffd-88b8-de59eecfb5c7}</Project>
+      <Name>SoapJsonConversion.Model</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
