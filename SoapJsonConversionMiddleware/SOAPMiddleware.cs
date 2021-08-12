@@ -112,15 +112,7 @@ namespace SoapJsonConversion.Middleware
 
                 _logger?.LogDebug($"rewrite {originPath} to {request.Path} with parameter {requestBody}!");
 
-                var returntype = operationAction.DispatchMethod.ReturnType;
-                if (returntype == typeof(Task))
-                {
-                    returntype = typeof(void);
-                }
-                else if (returntype.IsGenericType && typeof(Task).IsAssignableFrom(returntype))
-                {
-                    returntype = returntype.GenericTypeArguments.FirstOrDefault();
-                }
+                var returntype = GetReturnType(operationAction);
                 using (var readableResponseBody = new MemoryStream())
                 {
                     // replace Response.Body with readable stream
@@ -152,6 +144,33 @@ namespace SoapJsonConversion.Middleware
                         await httpContext.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(buffer), 0, buffer.Length);
                     }
                 }
+            }
+        }
+
+        private static Type GetReturnType(OperationDescription operationAction)
+        {
+            var returntype = operationAction.DispatchMethod.ReturnType;
+            if (returntype == typeof(Task))
+            {
+                returntype = typeof(void);
+            }
+            else if (returntype.IsGenericType && typeof(Task).IsAssignableFrom(returntype))
+            {
+                returntype = returntype.GenericTypeArguments.FirstOrDefault();
+            }
+
+            return returntype;
+        }
+
+        private static object ParseReturn(string result, Type type)
+        {
+            if (type.IsPrimitive || type == typeof(string) || type == typeof(Guid))
+            {
+                return Convert.ChangeType(result, type);
+            }
+            else
+            {
+                return JToken.Parse(result).ToObject(type);
             }
         }
 

@@ -60,12 +60,12 @@ namespace SoapJsonConversion
             }
         }
 
-        public static string Serialize(object data, ParameterInfo parameterInfo, string soapAction, string @namespace)
+        public static string Serialize(object data, ParameterInfo parameterInfo, Type type, string soapAction, string @namespace)
         {
             var resultName = parameterInfo.GetCustomAttribute<MessageParameterAttribute>()?.Name ?? soapAction + "Result";
 
             var response = string.Empty;
-            if (parameterInfo.ParameterType == typeof(void) || data == null)
+            if (type == typeof(void) || data == null)
             {
                 response = string.Format(XML_Envelope, string.Empty, @namespace);
             }
@@ -74,7 +74,7 @@ namespace SoapJsonConversion
                 var xml = string.Empty;
                 using (var ms = new MemoryStream())
                 {
-                    var xmlSerializer = new XmlSerializer(parameterInfo.ParameterType);
+                    var xmlSerializer = new XmlSerializer(type);
                     xmlSerializer.Serialize(ms, data);
                     ms.Position = 0;
                     using (var reader = new StreamReader(ms))
@@ -93,7 +93,17 @@ namespace SoapJsonConversion
 
         public static string OverwriteSoapXml(Type parameterType, string parameterName, string @namespace, XmlDictionaryReader xmlReader)
         {
-            xmlReader.MoveToStartElement(parameterName, @namespace);
+            if (!xmlReader.IsStartElement(parameterName, @namespace))
+            {
+                // try move to
+                try
+                {
+                    xmlReader.MoveToStartElement(parameterName, @namespace);
+                }
+                catch (XmlException ex)
+                {
+                }
+            }
             if (xmlReader.IsStartElement(parameterName, @namespace))
             {
                 var outerXml = xmlReader.ReadOuterXml();
@@ -106,11 +116,24 @@ namespace SoapJsonConversion
             }
             else if (parameterType.IsClass && typeof(string) != parameterType)
             {
-                var innerXml = xmlReader.ReadInnerXml();
+                var outerXml = string.Empty;
+                foreach (var property in parameterType.GetProperties().Where(p => p.GetSetMethod().IsPublic))
+                {
+                    var xml = xmlReader.ReadOuterXml();
+                    if (string.IsNullOrWhiteSpace(xml.Trim()))
+                    {
+                        break;
+                    }
+                    outerXml += xml.Replace($"xmlns=\"{@namespace}\"", string.Empty);
+                    if (!xmlReader.IsStartElement())
+                    {
+                        break;
+                    }
+                }
                 var typeNodeName = GetTypeNodeName(parameterType);
-                innerXml = $"<{typeNodeName}>" + innerXml + $"</{typeNodeName}>";
+                outerXml = $"<{typeNodeName}>" + outerXml + $"</{typeNodeName}>";
 
-                return innerXml;
+                return outerXml;
             }
             else
                 return string.Empty;
