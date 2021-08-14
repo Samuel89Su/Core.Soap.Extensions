@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.31424.327
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversion.Middleware", "src\SoapJsonConversionMiddleware\SoapJsonConversion.Middleware.csproj", "{8A381285-2A08-4DAB-A3AF-F423547FFCB9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapProxy.WebApiHost", "src\SoapProxy.WebApiHost\SoapProxy.WebApiHost.csproj", "{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversion.Common", "src\SoapJsonConversion.Common\SoapJsonConversion.Common.csproj", "{D06E1687-280D-4727-9796-BBF83F2DA4E3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{62E7FDED-09D7-4F61-BEC9-0C0FFF9B4519}"
@@ -21,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversion.Model", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversion.CommonTests", "test\SoapJsonConversion.CommonTests\SoapJsonConversion.CommonTests.csproj", "{7CAF00C6-5207-4280-95E0-25C7942F8642}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapProxy.WebApiHost", "src\SoapProxy.WebApiHost\SoapProxy.WebApiHost.csproj", "{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,10 +31,6 @@ Global
 		{8A381285-2A08-4DAB-A3AF-F423547FFCB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8A381285-2A08-4DAB-A3AF-F423547FFCB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8A381285-2A08-4DAB-A3AF-F423547FFCB9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D06E1687-280D-4727-9796-BBF83F2DA4E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D06E1687-280D-4727-9796-BBF83F2DA4E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D06E1687-280D-4727-9796-BBF83F2DA4E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -55,6 +51,10 @@ Global
 		{7CAF00C6-5207-4280-95E0-25C7942F8642}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7CAF00C6-5207-4280-95E0-25C7942F8642}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7CAF00C6-5207-4280-95E0-25C7942F8642}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
