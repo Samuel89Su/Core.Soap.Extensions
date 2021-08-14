@@ -136,11 +136,11 @@ namespace SoapJsonConversion.Middleware
                             {
                                 var res = await bodyReader.ReadToEndAsync();
                                 // deserialize response
-                                returnObject = JsonConvert.DeserializeObject<JToken>(res).ToObject(returntype);
+                                returnObject = ParseReturn(res, returntype);
                             }
                         }
 
-                        var buffer = SoapXMLHandler.Serialize(returnObject, operationAction.DispatchMethod.ReturnParameter, operationAction.SoapAction, _service.Contract.Namespace);
+                        var buffer = SoapXMLHandler.Serialize(returnObject, operationAction.DispatchMethod.ReturnParameter, returntype, operationAction.SoapAction, _service.Contract.Namespace);
                         await httpContext.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(buffer), 0, buffer.Length);
                     }
                 }

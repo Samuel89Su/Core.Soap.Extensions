@@ -3,12 +3,22 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>SoapJsonConversion</RootNamespace>
+    <Authors>Samuel Su</Authors>
+    <PackageProjectUrl>https://github.com/Samuel89Su/Core.Soap.Extensions</PackageProjectUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
     <PackageReference Include="System.ServiceModel.Http" Version="4.8.0" />
     <PackageReference Include="System.ServiceModel.Primitives" Version="4.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\SoapJsonConversionMiddleware\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

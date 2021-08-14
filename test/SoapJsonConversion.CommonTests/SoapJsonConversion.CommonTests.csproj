@@ -18,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SoapJsonConversion.Common\SoapJsonConversion.Common.csproj" />
-    <ProjectReference Include="..\SoapJsonConversionMiddleware.Model\SoapJsonConversion.Model.csproj" />
+    <ProjectReference Include="..\..\samples\SoapJsonConversionMiddleware.Model\SoapJsonConversion.Model.csproj" />
+    <ProjectReference Include="..\..\src\SoapJsonConversion.Common\SoapJsonConversion.Common.csproj" />
   </ItemGroup>
 
 </Project>
