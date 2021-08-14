@@ -14,7 +14,7 @@ namespace SoapJsonConversion
 {
     public class SoapXMLHandler
     {
-        private const string XML_Envelope = "<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><GetAccountResponse xmlns=\"{1}\">{0}</GetAccountResponse></soap:Body></soap:Envelope>";
+        private const string XML_Envelope = "<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><{1}Response xmlns=\"{2}\">{0}</{1}Response></soap:Body></soap:Envelope>";
 
         public static object[] ParseJsonToArguments(JToken jToken, ParameterInfo[] parameters)
         {
@@ -46,8 +46,9 @@ namespace SoapJsonConversion
             return arguments.ToArray();
         }
 
-        public static object Deserialize(XmlDictionaryReader xmlReader, ParameterInfo parameterInfo, string @namespace)
+        public static object Deserialize(XmlDictionaryReader xmlReader, ParameterInfo parameterInfo, string soapAction, string @namespace)
         {
+            xmlReader.ReadStartElement(soapAction, @namespace);
             var parameterName = parameterInfo.GetCustomAttribute<MessageParameterAttribute>()?.Name ?? parameterInfo.Name;
             var parameterType = parameterInfo.ParameterType;
 
@@ -60,14 +61,19 @@ namespace SoapJsonConversion
             }
         }
 
-        public static string Serialize(object data, ParameterInfo parameterInfo, Type type, string soapAction, string @namespace)
+        public static string Envelope(string bodyXml, string soapAction, string @namespace)
+        {
+            return string.Format(XML_Envelope, bodyXml, soapAction, @namespace);
+        }
+
+        public static string Serialize(object data, ParameterInfo parameterInfo, Type type, string soapAction)
         {
             var resultName = parameterInfo.GetCustomAttribute<MessageParameterAttribute>()?.Name ?? soapAction + "Result";
 
             var response = string.Empty;
             if (type == typeof(void) || data == null)
             {
-                response = string.Format(XML_Envelope, string.Empty, @namespace);
+                response = string.Empty;
             }
             else
             {
@@ -86,7 +92,7 @@ namespace SoapJsonConversion
                 xml = xml.Substring(xml.IndexOf('>') + 1);
                 xml = xml.Substring(0, xml.LastIndexOf('<'));
                 xml = $"<{resultName}>" + xml + $"</{resultName}>";
-                response = string.Format(XML_Envelope, xml, @namespace);
+                response = xml;
             }
             return response;
         }
@@ -117,19 +123,12 @@ namespace SoapJsonConversion
             else if (parameterType.IsClass && typeof(string) != parameterType)
             {
                 var outerXml = string.Empty;
-                foreach (var property in parameterType.GetProperties().Where(p => p.GetSetMethod().IsPublic))
+                do
                 {
-                    var xml = xmlReader.ReadOuterXml();
-                    if (string.IsNullOrWhiteSpace(xml.Trim()))
-                    {
-                        break;
-                    }
+                    var xml = xmlReader.ReadOuterXml().Trim();
                     outerXml += xml.Replace($"xmlns=\"{@namespace}\"", string.Empty);
-                    if (!xmlReader.IsStartElement())
-                    {
-                        break;
-                    }
-                }
+                } while (xmlReader.IsStartElement());
+
                 var typeNodeName = GetTypeNodeName(parameterType);
                 outerXml = $"<{typeNodeName}>" + outerXml + $"</{typeNodeName}>";
 
@@ -139,7 +138,7 @@ namespace SoapJsonConversion
                 return string.Empty;
         }
 
-        private static string GetTypeNodeName(Type type)
+        public static string GetTypeNodeName(Type type)
         {
             var typeName = type.Name;
             if (type.IsGenericType && typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
@@ -155,7 +154,7 @@ namespace SoapJsonConversion
             return typeName;
         }
 
-        private static string ToLowerCamelCase(string source)
+        public static string ToLowerCamelCase(string source)
         {
             if (string.IsNullOrWhiteSpace(source))
             {

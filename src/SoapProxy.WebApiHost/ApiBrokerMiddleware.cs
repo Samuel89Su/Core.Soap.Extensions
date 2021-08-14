@@ -1,16 +1,15 @@
 ﻿using Microsoft.Owin;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NLog;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Web;
 using System.Web.Services.Protocols;
 
 namespace SoapProxy.WebApiHost
@@ -18,6 +17,8 @@ namespace SoapProxy.WebApiHost
     public class ApiBrokerMiddleware : OwinMiddleware
     {
         private static readonly List<Type> _clientTypes = new List<Type>();
+
+        private readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         static ApiBrokerMiddleware()
         {
@@ -38,18 +39,21 @@ namespace SoapProxy.WebApiHost
             {
                 if ((PathServiceMap.Maps?.Count() ?? 0) == 0)
                 {
+                    logger.Debug($"No Service Map Configured!");
                     await this.Next.Invoke(context);
                     return;
                 }
                 var pathMap = PathServiceMap.Maps.FirstOrDefault(m => request.Path.StartsWithSegments(new PathString(m.PathRoot)));
                 if (pathMap == null)
                 {
+                    logger.Debug($"No Service Map for Path:{request.Path}!");
                     await this.Next.Invoke(context);
                     return;
                 }
                 var clientType = _clientTypes.FirstOrDefault(t => t.FullName.Equals(pathMap.ServiceClient));
                 if (clientType == null)
                 {
+                    logger.Warn($"ClientProxy:{pathMap.ServiceClient} not found!");
                     await this.Next.Invoke(context);
                     return;
                 }
@@ -66,6 +70,7 @@ namespace SoapProxy.WebApiHost
                 }
                 if (actionMethod == null)
                 {
+                    logger.Warn($"Action:{actionName} not found in ClientProxy:{pathMap.ServiceClient}!");
                     await this.Next.Invoke(context);
                     return;
                 }
@@ -79,33 +84,44 @@ namespace SoapProxy.WebApiHost
                         using (var reader = new StreamReader(request.Body))
                         {
                             var raw = await reader.ReadToEndAsync();
-                            parameters = new object[] { JsonConvert.DeserializeObject(raw, parameterInfos.First().ParameterType) };
+                            parameters = ParseJTokenToParameters(JsonConvert.DeserializeObject<JToken>(raw), parameterInfos);
                         }
                     }
                     else
                     {
-                        IEnumerable<KeyValuePair<string, string[]>> query = null;
-                        if (request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
-                        {
-                            query = await request.ReadFormAsync();
-                        }
-                        if (request.QueryString.HasValue)
-                        {
-                            query = query.Concat(request.Query);
-                        }
-                        parameters = ParseForm(query, parameterInfos);
+                        logger.Warn($"only support Content-Type: application/json!");
+                        throw new ArgumentException($"only support Content-Type: application/json");
                     }
                 }
 
                 var client = CreateSvcClient(clientType, pathMap);
+
+                logger.Info($"Invoke ClientProxy:{pathMap.ServiceClient}.{actionMethod.Name}"
+                    + (parameters != null && parameters.Length > 0
+                    ? $" with parameters:{JsonConvert.SerializeObject(parameters)}"
+                    : string.Empty));
+
                 var result = actionMethod.Invoke(client, parameters);
+                logger.Info($"Invoke ClientProxy:{pathMap.ServiceClient}.{actionMethod.Name} done"
+                    +
+                    (result != null
+                    ? $" with return{JsonConvert.SerializeObject(result)}"
+                    : string.Empty
+                    ));
 
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsync(JsonConvert.SerializeObject(result));
             }
             catch (Exception ex)
             {
-                throw;
+                if (ex.InnerException != null)
+                {
+                    logger.Error(ex.InnerException, ex.InnerException.Message);
+                }
+                else
+                {
+                    logger.Error(ex, ex.Message);
+                }
             }
         }
 
@@ -122,38 +138,41 @@ namespace SoapProxy.WebApiHost
             return client;
         }
 
-        private object[] ParseForm(IEnumerable<KeyValuePair<string, string[]>> form, ParameterInfo[] parameterInfos)
+        private object[] ParseJTokenToParameters(JToken jtoken, ParameterInfo[] parameterInfos)
         {
-            if (form == null || form.Count()==0)
+            if (jtoken == null)
             {
                 return new object[] { };
             }
-            var keyGroups = form.GroupBy(kv => kv.Key);
-            var formDic = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var group in keyGroups)
+            if (parameterInfos.Length == 1)
             {
-                formDic[group.Key] = group.SelectMany(g => g.Value);
+                return new object[] { jtoken.ToObject(parameterInfos.First().ParameterType) };
+            }
+
+            if (jtoken.Children().Count() == 0)
+            {
+                return new object[] { };
+            }
+
+            var properties = jtoken.Children().Cast<JProperty>();
+            if (properties == null || properties.Count() == 0)
+            {
+                return new object[] { };
             }
 
             var arguments = new object[parameterInfos.Length];
+
             for (int i = 0; i < parameterInfos.Length; i++)
             {
                 var parameter = parameterInfos[i];
-                if (!formDic.TryGetValue(parameter.Name, out IEnumerable<string> values) || values == null || values.Count() == 0)
+                var argument = properties.FirstOrDefault(p => p.Name.Equals(parameter.Name, StringComparison.OrdinalIgnoreCase));
+                if (argument == null)
                 {
                     arguments[i] = null;
                 }
-                else if (typeof(string) == parameter.ParameterType)
+                else
                 {
-                    arguments[i] = values.First();
-                }
-                else if (parameter.ParameterType == typeof(Guid) || parameter.ParameterType.IsPrimitive)
-                {
-                    arguments[i] = JToken.FromObject(values.First()).ToObject(parameter.ParameterType);
-                }
-                else if (typeof(IEnumerable).IsAssignableFrom(parameter.ParameterType))
-                {
-                    arguments[i] = JToken.FromObject(values).ToObject(parameter.ParameterType);
+                    arguments[i] = argument.ToObject(parameter.ParameterType);
                 }
             }
 

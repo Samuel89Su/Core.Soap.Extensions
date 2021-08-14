@@ -140,8 +140,8 @@ namespace SoapJsonConversion.Middleware
                             }
                         }
 
-                        var buffer = SoapXMLHandler.Serialize(returnObject, operationAction.DispatchMethod.ReturnParameter, returntype, operationAction.SoapAction, _service.Contract.Namespace);
-                        await httpContext.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(buffer), 0, buffer.Length);
+                        var response = SoapXMLHandler.Envelope(SoapXMLHandler.Serialize(returnObject, operationAction.DispatchMethod.ReturnParameter, returntype, operationAction.SoapAction), operationAction.SoapAction, _service.Contract.Namespace);
+                        await httpContext.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(response), 0, response.Length);
                     }
                 }
             }
@@ -181,6 +181,7 @@ namespace SoapJsonConversion.Middleware
 
             // replace Request.Body with first argument
             var requestBody = FormatArguments(arguments, operationDescription.DispatchMethod.GetParameters());
+
             var jsonRequestBody = new MemoryStream(Encoding.UTF8.GetBytes(requestBody));
             jsonRequestBody.Seek(0, SeekOrigin.Begin);
             httpRequest.Body = jsonRequestBody;
@@ -208,54 +209,16 @@ namespace SoapJsonConversion.Middleware
 
         private static string FormatArguments(object[] arguments, ParameterInfo[] parameters)
         {
-            if (arguments == null || arguments.Length == 0)
+            if (arguments == null || arguments.Length == 0 || arguments.All(a => a == null))
             {
                 return string.Empty;
             }
-            var firstParameter = parameters.First();
-            if (parameters.Length == 1 && firstParameter.ParameterType.IsClass && typeof(string) != firstParameter.ParameterType)
+            if (parameters.Count() > 1)
             {
-                return JsonConvert.SerializeObject(arguments.FirstOrDefault());
+                throw new InvalidOperationException($"Action should be only one parameter, but get {parameters.Count()}!");
             }
-            else
-            {
-                var values = new Dictionary<string, string>();
-                for (var i = 0; i < parameters.Count(); i++)
-                {
-                    var parameter = parameters[i];
-                    var argument = arguments.Skip(i).FirstOrDefault();
-                    if (argument != null)
-                    {
-                        if (parameter.ParameterType.IsPrimitive || parameter.ParameterType == typeof(Guid) || parameter.ParameterType == typeof(string))
-                        {
-                            values[parameter.Name] = HttpUtility.UrlEncode(argument.ToString());
-                        }
-                        else if (parameter.ParameterType.IsClass)
-                        {
-                            if (!typeof(IEnumerable).IsAssignableFrom(parameter.ParameterType))
-                            {
-                                foreach (var token in JToken.FromObject(argument).Children().Cast<JProperty>())
-                                {
-                                    values[string.Concat(parameter.Name, ".", token.Name)] = HttpUtility.UrlEncode(token.ToString());
-                                }
-                            }
-                            else
-                            {
-                                if (parameter.ParameterType.IsGenericType)
-                                {
-                                    var genericArgType = parameter.ParameterType.GenericTypeArguments.First();
-                                    var jArray = JToken.FromObject(argument) as JArray;
-                                    foreach (var token in jArray)
-                                    {
-                                        values[string.Concat(parameter.Name, "[]")] = HttpUtility.UrlEncode(token.ToString());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                return string.Join("&", values.Select(v => string.Concat(v.Key, "=", v.Value)));
-            }
+            var parameter = parameters.First();
+            return JsonConvert.SerializeObject(arguments.FirstOrDefault());
         }
 
         private object[] GetRequestArguments(Message requestMessage, OperationDescription operation)
@@ -276,8 +239,7 @@ namespace SoapJsonConversion.Middleware
                 var parameter = parameters.First();
                 using (var xmlReader = requestMessage.GetReaderAtBodyContents())
                 {
-                    xmlReader.ReadStartElement(operation.SoapAction, operation.Contract.Namespace);
-                    arguments.Add(SoapXMLHandler.Deserialize(xmlReader, parameter, operation.Contract.Namespace));
+                    arguments.Add(SoapXMLHandler.Deserialize(xmlReader, parameter, operation.SoapAction, operation.Contract.Namespace));
                 }
 
                 return arguments.ToArray();

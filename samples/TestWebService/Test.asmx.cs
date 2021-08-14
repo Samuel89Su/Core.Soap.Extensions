@@ -44,28 +44,6 @@ namespace TestWebService
         }
 
         [WebMethod]
-        public List<Account> GetAccounts(List<Guid> ids)
-        {
-            return ids.Select(id =>
-                new Account
-                {
-                    Id = ids.FirstOrDefault(),
-                    Name = "123",
-                    EMail = "123@1.com",
-                    Contacts = new List<Contact>
-                        {
-                            new Contact
-                            {
-                                 Id = 3,
-                                  FirstName = "Ne",
-                                   LastName = "fe",
-                            }
-                        }
-                })
-                .ToList();
-        }
-
-        [WebMethod]
         public List<Account> GetAccountByNames(List<string> ids)
         {
             return ids.Select(id =>
@@ -88,15 +66,73 @@ namespace TestWebService
         }
 
         [WebMethod]
-        public List<Account> CreateAccounts(List<Account> accounts)
+        public Account Create(Account account)
         {
-            throw new ArgumentException(nameof(accounts));
+            account = new Account
+            {
+                Id = account.Id,
+                Name = "123",
+                EMail = "123@1.com",
+                Contacts = new List<Contact>
+                    {
+                        new Contact
+                        {
+                             Id = 3,
+                              FirstName = "Ne",
+                               LastName = "fe",
+                        }
+                    }
+            };
+
+            return account;
         }
 
         [WebMethod]
-        public Account CreateAccount(Account account)
+        public List<Account> CreateAccounts(List<Account> accounts)
         {
-            throw new ArgumentException(nameof(account));
+            return accounts.Select(i => new Account
+            {
+                Id = i.Id,
+                Name = "123",
+                EMail = "123@1.com",
+                Contacts = new List<Contact>
+                    {
+                        new Contact
+                        {
+                             Id = 3,
+                              FirstName = "Ne",
+                               LastName = "fe",
+                        }
+                    }
+            })
+                .ToList();
+        }
+
+        [WebMethod]
+        public List<Account> GetAccounts(List<Guid> ids)
+        {
+            return ids.Select(i => new Account
+            {
+                Id = i,
+                Name = "123",
+                EMail = "123@1.com",
+                Contacts = new List<Contact>
+                    {
+                        new Contact
+                        {
+                             Id = 3,
+                              FirstName = "Ne",
+                               LastName = "fe",
+                        }
+                    }
+            })
+                .ToList();
+        }
+
+        [WebMethod]
+        public Guid Delete(Guid id)
+        {
+            return id;
         }
     }
 }

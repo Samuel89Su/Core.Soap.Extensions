@@ -69,7 +69,7 @@ namespace TestCoreApplication.Controllers
         {
             account = new Account
             {
-                Id = Guid.Empty,
+                Id = account.Id,
                 Name = "123",
                 EMail = "123@1.com",
                 Contacts = new List<Contact>
@@ -90,10 +90,9 @@ namespace TestCoreApplication.Controllers
         [HttpPost]
         public async Task<List<Account>> CreateAccounts(List<Account> accounts)
         {
-
-            return new List<Guid> { Guid.NewGuid(), Guid.NewGuid() }.Select(i => new Account
+            return accounts.Select(i => new Account
             {
-                Id = i,
+                Id = i.Id,
                 Name = "123",
                 EMail = "123@1.com",
                 Contacts = new List<Contact>
@@ -133,9 +132,9 @@ namespace TestCoreApplication.Controllers
 
         [OperationContract(Action = "Delete")]
         [HttpPost]
-        public void Delete(Guid id)
+        public Guid Delete([FromBody]Guid id)
         {
-            return;
+            return id;
         }
     }
 }

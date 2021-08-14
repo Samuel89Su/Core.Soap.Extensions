@@ -10,11 +10,39 @@ using System.Xml.Serialization;
 using System.Xml;
 using System.IO;
 using SoapJsonConversion.Model;
+using System.Reflection;
+using System.ServiceModel;
 
 namespace SoapJsonConversion.Tests
 {
     public class SoapXMLHandlerTests
     {
+        [Fact]
+        public void ParseJsonToArguments_NullOrEmpty_Test()
+        {
+            ParameterInfo[] parameters = null;
+            var jtoken = JToken.Parse("{\"auth\":\"autho\",\"text\":\"tttrttr\"}");
+
+            var arguments = SoapXMLHandler.ParseJsonToArguments(jtoken, parameters);
+
+            arguments.ShouldNotBeNull();
+            arguments.Length.ShouldBe(0);
+
+            parameters = new ParameterInfo[] { };
+            arguments = SoapXMLHandler.ParseJsonToArguments(jtoken, parameters);
+
+            arguments.ShouldNotBeNull();
+            arguments.Length.ShouldBe(0);
+
+            parameters = typeof(AndroidStructNotification).GetMethod("Detect").GetParameters();
+            jtoken = JToken.Parse("null");
+
+            arguments = SoapXMLHandler.ParseJsonToArguments(jtoken, parameters);
+
+            arguments.ShouldNotBeNull();
+            arguments.Length.ShouldBe(0);
+        }
+
         [Fact]
         public void ParseJsonToArguments_Detect_Test()
         {
@@ -86,7 +114,7 @@ namespace SoapJsonConversion.Tests
         const string @namespace = "http://webservice.com";
 
         [Fact(DisplayName = "Deserialize Guid")]
-        public void Deserialize_Guid_Test()
+        public void OverwriteSoapXml_Guid_Test()
         {
             try
             {
@@ -112,7 +140,7 @@ namespace SoapJsonConversion.Tests
         }
 
         [Fact(DisplayName = "Deserialize Guid List")]
-        public void Deserialize_Guid_List_Test()
+        public void OverwriteSoapXml_Guid_List_Test()
         {
             try
             {
@@ -140,14 +168,35 @@ namespace SoapJsonConversion.Tests
         }
 
         [Fact(DisplayName = "Deserialize Account")]
-        public void Deserialize_Account_Test()
+        public void OverwriteSoapXml_Account_Test()
         {
-            try
+            var parameterType = typeof(Account);
+            var parameterName = "account";
+            var action = "CreateAccount";
+            var xml = "<CreateAccount xmlns=\"http://webservice.com\"><account><Id>29dad7b2-7d9c-46aa-b8ed-19386514175e</Id><Name>123</Name><EMail>234</EMail><Contacts><Contact><Id>1</Id><LastName>345</LastName><FirstName>456</FirstName></Contact><Contact><Id>2</Id><LastName>567</LastName><FirstName>678</FirstName></Contact></Contacts></account></CreateAccount>";
+
+            var xmlSerializer = new XmlSerializer(parameterType);
+
+            var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
+            xmlReader.ReadStartElement(action, @namespace);
+
+            var outerXml = SoapXMLHandler.OverwriteSoapXml(parameterType, parameterName, @namespace, xmlReader);
+            var account = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as Account;
+
+            account.ShouldNotBeNull();
+            account.Id.ShouldNotBe(Guid.Empty);
+            account.Contacts.ShouldNotBeNull();
+            account.Contacts.Count.ShouldBe(2);
+        }
+
+        [Fact(DisplayName = "Deserialize Multi to Account")]
+        public void OverwriteSoapXml_MultiToAccount_Test()
+        {
             {
                 var parameterType = typeof(Account);
                 var parameterName = "account";
                 var action = "CreateAccount";
-                var xml = "<CreateAccount xmlns=\"http://webservice.com\"><account><Id>29dad7b2-7d9c-46aa-b8ed-19386514175e</Id><Name>123</Name><EMail>234</EMail><Contacts><Contact><Id>1</Id><LastName>345</LastName><FirstName>456</FirstName></Contact><Contact><Id>2</Id><LastName>567</LastName><FirstName>678</FirstName></Contact></Contacts></account></CreateAccount>";
+                var xml = "<CreateAccount xmlns=\"http://webservice.com\"><Id>29dad7b2-7d9c-46aa-b8ed-19386514175e</Id><Name>123</Name><EMail>234</EMail><Contacts><Contact><Id>1</Id><LastName>345</LastName><FirstName>456</FirstName></Contact><Contact><Id>2</Id><LastName>567</LastName><FirstName>678</FirstName></Contact></Contacts></CreateAccount>";
 
                 var xmlSerializer = new XmlSerializer(parameterType);
 
@@ -162,14 +211,10 @@ namespace SoapJsonConversion.Tests
                 account.Contacts.ShouldNotBeNull();
                 account.Contacts.Count.ShouldBe(2);
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
         }
 
         [Fact(DisplayName = "Deserialize Accounts")]
-        public void Deserialize_Accounts_Test()
+        public void OverwriteSoapXml_Accounts_Test()
         {
             try
             {
@@ -199,7 +244,7 @@ namespace SoapJsonConversion.Tests
         }
 
         [Fact(DisplayName = "Deserialize string")]
-        public void Deserialize_String_Test()
+        public void OverwriteSoapXml_String_Test()
         {
             try
             {
@@ -223,6 +268,95 @@ namespace SoapJsonConversion.Tests
                 throw;
             }
         }
+
+        [Fact]
+        public void Deserialize_Test()
+        {
+            var soapAction = "CreateAccount";
+            {
+                var parameter = typeof(AndroidStructNotification).GetMethod(nameof(AndroidStructNotification.Accout)).GetParameters().First();
+
+                var xml = "<CreateAccount xmlns=\"http://webservice.com\"><id>29dad7b2-7d9c-46aa-b8ed-19386514175e</id></CreateAccount>";
+                var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
+
+                SoapXMLHandler.Deserialize(xmlReader, parameter, soapAction, @namespace)
+                    .ShouldBe(Guid.Parse("29dad7b2-7d9c-46aa-b8ed-19386514175e"));
+            }
+
+            {
+                var parameter = typeof(AndroidStructNotification).GetMethod(nameof(AndroidStructNotification.Accout1)).GetParameters().First();
+
+                var xml = "<CreateAccount xmlns=\"http://webservice.com\"><guid>29dad7b2-7d9c-46aa-b8ed-19386514175e</guid></CreateAccount>";
+                var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
+
+                SoapXMLHandler.Deserialize(xmlReader, parameter, soapAction, @namespace)
+                    .ShouldBe(Guid.Parse("29dad7b2-7d9c-46aa-b8ed-19386514175e"));
+            }
+        }
+
+        [Fact]
+        public void Serialize_Test()
+        {
+            var parameter = typeof(AndroidStructNotification).GetMethod(nameof(AndroidStructNotification.PostAccount)).GetParameters().First();
+            var action = "CreateAccount";
+
+            var account = new Account
+            {
+                Id = new Guid("29dad7b2-7d9c-46aa-b8ed-19386514175e"),
+                Name = "123",
+                EMail = "234",
+                Contacts = new List<Contact>
+                {
+                    new Contact
+                    {
+                        Id = 1,
+                        FirstName = "456",
+                        LastName="345",
+                    },
+                     new Contact
+                    {
+                        Id = 2,
+                        FirstName = "678",
+                        LastName="567",
+                    }
+                }
+            };
+
+            var xml = SoapXMLHandler.Serialize(account, parameter, parameter.ParameterType, action)
+                .Replace("Result", string.Empty)
+                .Replace("<" + action, $"<{action} xmlns=\"{@namespace}\"");
+
+            //var xml = "<CreateAccount xmlns=\"http://webservice.com\"><account><Id>29dad7b2-7d9c-46aa-b8ed-19386514175e</Id><Name>123</Name><EMail>234</EMail><Contacts><Contact><Id>1</Id><LastName>345</LastName><FirstName>456</FirstName></Contact><Contact><Id>2</Id><LastName>567</LastName><FirstName>678</FirstName></Contact></Contacts></account></CreateAccount>";
+
+            var xmlSerializer = new XmlSerializer(parameter.ParameterType);
+
+            var xmlReader = XmlDictionaryReader.CreateTextReader(Encoding.UTF8.GetBytes(xml), XmlDictionaryReaderQuotas.Max);
+            xmlReader.ReadStartElement(action, @namespace);
+
+            var outerXml = SoapXMLHandler.OverwriteSoapXml(parameter.ParameterType, parameter.Name, @namespace, xmlReader);
+            var newAccount = xmlSerializer.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(outerXml))) as Account;
+
+            newAccount.ShouldNotBeNull();
+            newAccount.Id.ShouldNotBe(Guid.Empty);
+            newAccount.Contacts.ShouldNotBeNull();
+            newAccount.Contacts.Count.ShouldBe(2);
+        }
+
+        [Fact(DisplayName = "")]
+        public void ToLowerCamelCase()
+        {
+            SoapXMLHandler.ToLowerCamelCase(null)
+                .ShouldBeNull();
+
+            SoapXMLHandler.ToLowerCamelCase("haha")
+                .ShouldBe("haha");
+
+            SoapXMLHandler.ToLowerCamelCase("Haha")
+                .ShouldBe("haha");
+
+            SoapXMLHandler.ToLowerCamelCase("hAha")
+                .ShouldBe("hAha");
+        }
     }
 
     public partial class AndroidStructNotification
@@ -245,6 +379,17 @@ namespace SoapJsonConversion.Tests
         /// <remarks/>
         public string _partnerId { get; set; }
 
+        public void PostAccount(Account account)
+        {
+        }
+
+        public void Accout(Guid id)
+        {
+        }
+
+        public void Accout1([MessageParameterAttribute(Name = "guid")] Guid id)
+        {
+        }
 
         public string Detect(string auth, string text)
         {
