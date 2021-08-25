@@ -3,7 +3,15 @@ using System.Collections.Generic;
 
 namespace SoapJsonConversion.Model
 {
-    public class Account
+    public interface IAccount
+    {
+        List<Contact> Contacts { get; set; }
+        string EMail { get; set; }
+        Guid Id { get; set; }
+        string Name { get; set; }
+    }
+
+    public class Account : IAccount
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
@@ -11,6 +19,8 @@ namespace SoapJsonConversion.Model
 
         public List<Contact> Contacts { get; set; }
     }
+
+
 
     public class Contact
     {

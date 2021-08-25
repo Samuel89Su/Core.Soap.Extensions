@@ -12,6 +12,9 @@ using System.IO;
 using SoapJsonConversion.Model;
 using System.Reflection;
 using System.ServiceModel;
+using System.Runtime.CompilerServices;
+using Newtonsoft.Json;
+using System.Dynamic;
 
 namespace SoapJsonConversion.Tests
 {

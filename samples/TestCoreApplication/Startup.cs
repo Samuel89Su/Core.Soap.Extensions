@@ -29,6 +29,7 @@ namespace TestCoreApplication
                 c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "TestCoreApplication", Version = "v1", });
             });
 
+            services.AddTransient<ExceptionMiddleware>();
             services.AddTransient<AccountService>();
             //services.AddTransient<CalculatorService>();
 
@@ -55,6 +56,7 @@ namespace TestCoreApplication
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "TestCoreApplication v1");
             });
 
+            app.UseMiddleware<ExceptionMiddleware>();
             app.UseSOAPMiddleware<AccountController>("/test.asmx");
 
             app.UseRouting();

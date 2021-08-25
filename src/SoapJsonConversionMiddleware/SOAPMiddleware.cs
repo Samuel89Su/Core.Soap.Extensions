@@ -118,13 +118,13 @@ namespace SoapJsonConversion.Middleware
                     // replace Response.Body with readable stream
                     httpContext.Response.Body = readableResponseBody;
                     await _next(httpContext);
+                    httpContext.Response.Body = originResponseStream;
 
                     if (httpContext.Response.StatusCode >= (int)HttpStatusCode.OK
                         && httpContext.Response.StatusCode < (int)HttpStatusCode.Ambiguous)
                     {
                         httpContext.Response.ContentType = contentType;
                         httpContext.Response.Headers[SOAP_HEADER_ACTION] = soapAction;
-                        httpContext.Response.Body = originResponseStream;
 
                         readableResponseBody.Position = 0;
                         readableResponseBody.Seek(0, SeekOrigin.Begin);
@@ -141,7 +141,10 @@ namespace SoapJsonConversion.Middleware
                         }
 
                         var response = SoapXMLHandler.Envelope(SoapXMLHandler.Serialize(returnObject, operationAction.DispatchMethod.ReturnParameter, returntype, operationAction.SoapAction), operationAction.SoapAction, _service.Contract.Namespace);
-                        await httpContext.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(response), 0, response.Length);
+                        var buffer = Encoding.UTF8.GetBytes(response);
+                        // reset content-length
+                        httpContext.Response.ContentLength = buffer.Length;
+                        await httpContext.Response.Body.WriteAsync(buffer, 0, response.Length);
                     }
                 }
             }

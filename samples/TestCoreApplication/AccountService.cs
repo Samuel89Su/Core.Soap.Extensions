@@ -1,7 +1,9 @@
-﻿using SoapJsonConversion.Model;
+﻿using Newtonsoft.Json;
+using SoapJsonConversion.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.ServiceModel;
 
 namespace TestCoreApplication
@@ -12,7 +14,7 @@ namespace TestCoreApplication
         [OperationContract]
         public Account GetAccount(Guid id)
         {
-            return new Account
+            var account = new Account
             {
                 Id = id,
                 Name = "123",
@@ -27,6 +29,8 @@ namespace TestCoreApplication
                         }
                     }
             };
+
+            return account;
         }
 
         [OperationContract]
