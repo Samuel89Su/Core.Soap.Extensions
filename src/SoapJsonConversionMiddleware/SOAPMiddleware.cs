@@ -118,11 +118,12 @@ namespace SoapJsonConversion.Middleware
                     // replace Response.Body with readable stream
                     httpContext.Response.Body = readableResponseBody;
                     await _next(httpContext);
-                    httpContext.Response.Body = originResponseStream;
 
                     if (httpContext.Response.StatusCode >= (int)HttpStatusCode.OK
                         && httpContext.Response.StatusCode < (int)HttpStatusCode.Ambiguous)
                     {
+                        httpContext.Response.Body = originResponseStream;
+
                         httpContext.Response.ContentType = contentType;
                         httpContext.Response.Headers[SOAP_HEADER_ACTION] = soapAction;
 
