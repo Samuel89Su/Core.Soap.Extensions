@@ -144,7 +144,7 @@ namespace SoapJsonConversion.Middleware
                         var buffer = Encoding.UTF8.GetBytes(response);
                         // reset content-length
                         httpContext.Response.ContentLength = buffer.Length;
-                        await httpContext.Response.Body.WriteAsync(buffer, 0, response.Length);
+                        await httpContext.Response.Body.WriteAsync(buffer, 0, buffer.Length);
                     }
                 }
             }
