@@ -6,8 +6,8 @@
     <Description>Parse SOAP message to json, rewrite request path to ApiController</Description>
     <PackageProjectUrl>https://github.com/Samuel89Su/Core.Soap.Extensions</PackageProjectUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <Version>1.0.9.1</Version>
-    <PackageReleaseNotes>Set response content-length.</PackageReleaseNotes>
+    <Version>1.0.9.4</Version>
+    <PackageReleaseNotes>Do nothing if response status is not success.</PackageReleaseNotes>
     <PackageId>SoapJsonConversion.Middleware</PackageId>
     <RootNamespace>SoapJsonConversion.Middleware</RootNamespace>
     <AssemblyName>SoapJsonConversion.Middleware</AssemblyName>
