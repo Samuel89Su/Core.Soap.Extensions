@@ -1,27 +1,19 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Runtime.Serialization;
 using System.ServiceModel;
 using System.ServiceModel.Channels;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Web;
-using System.Xml;
-using System.Xml.Serialization;
 
 namespace SoapJsonConversion.Middleware
 {
@@ -35,30 +27,16 @@ namespace SoapJsonConversion.Middleware
         private const string TEMP_SUFFIX_ACTION = "[action]";
 
         private readonly RequestDelegate _next;
-        private readonly string _endpointPath;
         private readonly MessageEncoder _messageEncoder;
-        private readonly ServiceDescription _service;
 
-        private readonly string _routeTemplate;
         private ILogger _logger;
 
-        public SOAPMiddleware(RequestDelegate next, Type serviceType, string path)
+        public SOAPMiddleware(RequestDelegate next)
         {
             _next = next;
-            _endpointPath = path;
             _messageEncoder = new BasicHttpBinding()
                 .CreateBindingElements()
                 .Find<MessageEncodingBindingElement>()?.CreateMessageEncoderFactory().Encoder;
-            _service = new ServiceDescription(serviceType);
-
-            var routeAttribute = serviceType.GetCustomAttribute<RouteAttribute>()
-                ?? throw new ArgumentException($"Controller {serviceType.Name} must has RouteAttribute!");
-            _routeTemplate = "/" + routeAttribute.Template
-                .Replace($"[{TEMP_SUFFIX_CONTROLLER}]", serviceType.Name.Replace(TEMP_SUFFIX_CONTROLLER, string.Empty, StringComparison.OrdinalIgnoreCase), StringComparison.OrdinalIgnoreCase);
-            if (string.IsNullOrWhiteSpace(_routeTemplate))
-            {
-                throw new ArgumentException($"Can not determine route template for Controller {serviceType.Name}!");
-            }
         }
 
         public async Task Invoke(HttpContext httpContext)
@@ -66,9 +44,9 @@ namespace SoapJsonConversion.Middleware
             _logger ??= (httpContext.RequestServices.GetService(typeof(ILoggerFactory)) as ILoggerFactory)?.CreateLogger<SOAPMiddleware>();
 
             var request = httpContext.Request;
-            if (!request.Path.Equals(_endpointPath, StringComparison.OrdinalIgnoreCase))
+            if (!ServiceDescriptionExtensions.TryGetMatchControllers(request.Path, out IEnumerable<Type> controllerCandidates))
             {
-                _logger?.LogDebug($"{request.Path.Value} do not match {_endpointPath}, go to next!");
+                _logger?.LogDebug($"{request.Path.Value} has no matched Controller, go to next!");
                 await _next(httpContext);
             }
             else
@@ -81,6 +59,8 @@ namespace SoapJsonConversion.Middleware
                 // read soap action from header
                 var soapAction = request.Headers[SOAP_HEADER_ACTION].ToString().Trim('\"');
 
+                RouteAttribute routeAttribute = null;
+                var _routeTemplate = string.Empty;
                 using (var syncReadableReqBody = new MemoryStream())
                 {
                     // copy to a sync readable stream.
@@ -96,11 +76,16 @@ namespace SoapJsonConversion.Middleware
                     }
 
                     // get operation action from registation
-                    operationAction = _service.Operations.Where(o => o.FullSoapAction.Equals(requestMessage.Headers.Action, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
-                    if (operationAction == null)
+                    if (!ServiceDescriptionExtensions.TryGetMatchActions(request.Path, requestMessage.Headers.Action, out Type serviceType, out operationAction))
                     {
                         throw new InvalidOperationException($"No operation found for specified action: {requestMessage.Headers.Action}");
                     }
+
+                    routeAttribute = serviceType.GetCustomAttribute<RouteAttribute>()
+                        ?? throw new ArgumentException($"Controller {serviceType.Name} must has RouteAttribute!");
+                    _routeTemplate = "/" + routeAttribute.Template
+                        .Replace($"[{TEMP_SUFFIX_CONTROLLER}]", serviceType.Name.Replace(TEMP_SUFFIX_CONTROLLER, string.Empty, StringComparison.OrdinalIgnoreCase), StringComparison.OrdinalIgnoreCase);
+
                     // deserialize operation action arguments from body
                     arguments = GetRequestArguments(requestMessage, operationAction);
                 }
@@ -141,7 +126,7 @@ namespace SoapJsonConversion.Middleware
                             }
                         }
 
-                        var response = SoapXMLHandler.Envelope(SoapXMLHandler.Serialize(returnObject, operationAction.DispatchMethod.ReturnParameter, returntype, operationAction.SoapAction), operationAction.SoapAction, _service.Contract.Namespace);
+                        var response = SoapXMLHandler.Envelope(SoapXMLHandler.Serialize(returnObject, operationAction.DispatchMethod.ReturnParameter, returntype, operationAction.SoapAction), operationAction.SoapAction, operationAction.Contract.Namespace);
                         var buffer = Encoding.UTF8.GetBytes(response);
                         // reset content-length
                         httpContext.Response.ContentLength = buffer.Length;
@@ -252,14 +237,6 @@ namespace SoapJsonConversion.Middleware
             {
                 throw;
             }
-        }
-    }
-
-    public static class SOAPMiddlewareExtensions
-    {
-        public static IApplicationBuilder UseSOAPMiddleware<T>(this IApplicationBuilder builder, [NotNull] string path) where T : ControllerBase
-        {
-            return builder.UseMiddleware<SOAPMiddleware>(typeof(T), path);
         }
     }
 }

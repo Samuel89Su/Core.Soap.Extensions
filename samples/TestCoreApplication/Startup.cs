@@ -58,6 +58,7 @@ namespace TestCoreApplication
 
             app.UseMiddleware<ExceptionMiddleware>();
             app.UseSOAPMiddleware<AccountController>("/test.asmx");
+            app.UseSOAPMiddleware<HelloWorldController>("/test.asmx");
 
             app.UseRouting();
 

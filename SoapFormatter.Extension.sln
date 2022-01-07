@@ -21,6 +21,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoapJsonConversion.CommonTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapProxy.WebApiHost", "src\SoapProxy.WebApiHost\SoapProxy.WebApiHost.csproj", "{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoapJsonConversion.Middleware_Tests", "test\SoapJsonConversion.Middleware_Tests\SoapJsonConversion.Middleware_Tests.csproj", "{42C05917-F5F3-4E40-B102-3AE1F065FE29}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,10 @@ Global
 		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E2D0C382-FBC8-49A7-BFD1-EC1B4DC502B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42C05917-F5F3-4E40-B102-3AE1F065FE29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42C05917-F5F3-4E40-B102-3AE1F065FE29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42C05917-F5F3-4E40-B102-3AE1F065FE29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42C05917-F5F3-4E40-B102-3AE1F065FE29}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -64,6 +70,7 @@ Global
 		{5FAD9000-3DFE-4375-86A1-1F242C194598} = {CF0F16D5-A7F2-473C-B73F-313CC668A165}
 		{A58FFDF1-FE8D-4491-9932-B3341DF23396} = {CF0F16D5-A7F2-473C-B73F-313CC668A165}
 		{7CAF00C6-5207-4280-95E0-25C7942F8642} = {62E7FDED-09D7-4F61-BEC9-0C0FFF9B4519}
+		{42C05917-F5F3-4E40-B102-3AE1F065FE29} = {62E7FDED-09D7-4F61-BEC9-0C0FFF9B4519}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D0BE98B6-D0F6-4708-9210-90EC3B02DB67}
